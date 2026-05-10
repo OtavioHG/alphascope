@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  alphascope-core:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    command: python -m alphascope.cli run-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../.env
+
+  alphascope-dashboard:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    command: python -m alphascope.cli run-dashboard
+    ports:
+      - "8501:8501"
+    env_file:
+      - ../../.env
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: alphascope
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"

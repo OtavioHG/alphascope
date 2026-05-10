@@ -1,0 +1,340 @@
+RELATORIO DA FASE 5 DO PROJETO ALPHASCOPE
+
+1. VISÃO GERAL
+
+A FASE 5 do AlphaScope teve como objetivo transformar o sistema em uma plataforma visual local, acessível pelo navegador, permitindo monitoramento operacional, análise de ativos, visualização de sinais do modelo, acompanhamento de trades simulados e inspeção do estado geral do sistema.
+
+Com essa fase, o AlphaScope deixa de depender exclusivamente da CLI para operação e monitoramento, passando a oferecer uma interface profissional, simples e integrada ao pipeline já existente.
+
+2. OBJETIVO DA FASE 5
+
+Os principais objetivos desta fase foram:
+
+- criar uma interface gráfica local com Streamlit;
+- visualizar dados de mercado e indicadores técnicos;
+- acompanhar o ranking de ativos gerado pelo modelo;
+- monitorar trades do paper trading;
+- acompanhar sentimento e tópicos de notícias;
+- exibir métricas do sistema e do pipeline;
+- permitir controles básicos da automação;
+- manter integração total com as fases anteriores.
+
+3. TECNOLOGIA UTILIZADA
+
+Foi adotado o Streamlit como base da interface visual, pelos seguintes motivos:
+
+- integração direta com Python;
+- velocidade de implementação;
+- boa adequação para dashboards analíticos;
+- facilidade para evolução futura.
+
+Também foram utilizados:
+
+- Plotly para gráficos interativos;
+- pandas para manipulação dos dados;
+- psutil para métricas básicas do sistema.
+
+4. ESTRUTURA IMPLEMENTADA
+
+Foi criado o módulo:
+
+src/alphascope/dashboard/
+
+Estrutura implementada:
+
+- app.py
+- pages/
+  - overview.py
+  - market_analysis.py
+  - asset_ranking.py
+  - news_sentiment.py
+  - trading_monitor.py
+  - system_monitor.py
+- components/
+  - charts.py
+  - tables.py
+  - metrics.py
+- services/
+  - data_service.py
+  - ranking_service.py
+  - trading_service.py
+
+Essa organização mantém separação clara entre:
+
+- interface;
+- componentes visuais reutilizáveis;
+- acesso aos dados;
+- lógica de apresentação.
+
+5. DASHBOARD PRINCIPAL
+
+O arquivo principal app.py passou a controlar a navegação do dashboard e a página inicial.
+
+A página inicial mostra:
+
+- status geral do sistema;
+- quantidade de ativos analisados;
+- número de trades executados;
+- lucro ou prejuízo realizado;
+- sentimento médio do mercado;
+- curva de capital;
+- principais ativos do ranking;
+- status do pipeline e do scheduler.
+
+Também foram adicionados controles laterais para:
+
+- rodar o pipeline;
+- atualizar o ranking;
+- marcar o scheduler como pausado;
+- marcar o scheduler como retomado.
+
+6. PÁGINAS IMPLEMENTADAS
+
+6.1. Overview
+
+A página overview.py mostra:
+
+- estado do scheduler;
+- último ciclo executado;
+- capital atual;
+- número de posições abertas;
+- lucro acumulado;
+- curva de equity;
+- distribuição de trades;
+- número de sinais por dia.
+
+6.2. Market Analysis
+
+A página market_analysis.py permite:
+
+- selecionar ativo;
+- selecionar intervalo;
+- visualizar gráfico de candles;
+- visualizar RSI;
+- visualizar MACD;
+- visualizar Bollinger Bands;
+- visualizar volume;
+- visualizar probabilidade mais recente do modelo.
+
+6.3. Asset Ranking
+
+A página asset_ranking.py exibe o ranking gerado pelo modelo com filtros por:
+
+- intervalo;
+- score mínimo;
+- risco máximo.
+
+A tabela pode mostrar, conforme os dados disponíveis:
+
+- symbol;
+- predicted_probability;
+- score_high;
+- score_risk;
+- score_final;
+- confidence_score;
+- sentiment_score.
+
+6.4. News Sentiment
+
+A página news_sentiment.py mostra:
+
+- notícias recentes;
+- sentimento;
+- tópico;
+- ativo citado;
+- timestamp.
+
+Também apresenta visualizações como:
+
+- distribuição de sentimento;
+- sentimento médio por ativo;
+- volume de notícias ao longo do tempo.
+
+6.5. Trading Monitor
+
+A página trading_monitor.py permite acompanhar:
+
+- equity curve;
+- lucro por trade;
+- histórico de trades;
+- posições abertas.
+
+Essa tela fornece uma visualização operacional direta do paper trading da FASE 4.
+
+6.6. System Monitor
+
+A página system_monitor.py mostra:
+
+- métricas de CPU;
+- memória;
+- estado do scheduler;
+- estado do pipeline;
+- logs recentes do sistema;
+- logs recentes de trading.
+
+Essa tela consolida o monitoramento técnico da plataforma.
+
+7. COMPONENTES REUTILIZÁVEIS
+
+Para evitar repetição e manter padronização visual, foram criados componentes em:
+
+- charts.py
+- tables.py
+- metrics.py
+
+Esses componentes encapsulam:
+
+- gráfico candlestick;
+- curva de equity;
+- gráficos de indicadores;
+- distribuição de sentimento;
+- tabelas de ranking, trades e notícias;
+- cartões de métrica;
+- cartões de status do sistema.
+
+8. SERVIÇOS DE DADOS
+
+Foi criada uma camada de serviços para desacoplar o dashboard da lógica de persistência e leitura de arquivos.
+
+8.1. data_service.py
+
+Responsabilidades:
+
+- carregar dataset consolidado;
+- obter símbolos disponíveis;
+- filtrar dados de mercado;
+- carregar candles;
+- carregar features;
+- carregar notícias recentes;
+- carregar logs recentes;
+- gerar snapshot rápido do mercado.
+
+8.2. ranking_service.py
+
+Responsabilidades:
+
+- carregar o ranking mais recente;
+- enriquecer ranking com previsões e sentimento;
+- aplicar filtros por score e risco;
+- atualizar ranking usando o pipeline existente.
+
+8.3. trading_service.py
+
+Responsabilidades:
+
+- carregar trades;
+- carregar snapshot do portfólio;
+- carregar posições abertas;
+- calcular métricas de trading;
+- carregar equity curve.
+
+9. INTEGRAÇÃO COM FASES ANTERIORES
+
+A FASE 5 foi implementada sem quebrar as fases anteriores.
+
+O dashboard consome diretamente artefatos e estados já gerados por:
+
+- FASE 3: modelos, previsões, ranking, backtests;
+- FASE 4: paper trading, scheduler, pipeline contínuo, logs e monitoramento.
+
+Isso garante reaproveitamento de toda a base já construída, sem duplicar lógica principal de negócio.
+
+10. CLI
+
+Foi adicionado o comando:
+
+alphascope run-dashboard
+
+Esse comando:
+
+- inicia o Streamlit localmente;
+- usa a porta configurada no .env;
+- tenta abrir o navegador automaticamente;
+- mantém o dashboard acessível em ambiente local.
+
+11. CONFIGURAÇÃO
+
+O arquivo .env.example foi atualizado com:
+
+- DASHBOARD_PORT=8501
+- ENABLE_DASHBOARD=True
+
+Também foi atualizado o settings.py para suportar essas novas configurações.
+
+12. DEPENDÊNCIAS ADICIONADAS
+
+O pyproject.toml foi atualizado com dependências da FASE 5:
+
+- streamlit
+- plotly
+- psutil
+
+Essas bibliotecas viabilizam:
+
+- interface visual;
+- gráficos interativos;
+- métricas do sistema.
+
+13. TESTES
+
+Foram adicionados testes básicos para os serviços do dashboard:
+
+- test_phase5_services.py
+
+Esses testes validam:
+
+- carregamento correto do dataset;
+- leitura de logs;
+- enriquecimento do ranking;
+- cálculo de métricas de trading;
+- leitura de equity curve.
+
+Além disso, foram executados novamente os testes das fases anteriores para garantir regressão zero.
+
+Resultado da validação:
+
+- 15 testes executados com sucesso.
+
+14. QUALIDADES DA FASE 5
+
+Os principais pontos fortes da implementação são:
+
+- interface funcional e integrada;
+- arquitetura organizada por serviços, páginas e componentes;
+- consumo direto dos dados produzidos pelo pipeline;
+- visualização clara das áreas mais importantes do sistema;
+- controle operacional básico pelo dashboard;
+- compatibilidade com as fases anteriores;
+- simplicidade de uso local.
+
+15. LIMITAÇÕES ATUAIS
+
+Embora funcional, a V1 da FASE 5 ainda possui algumas limitações:
+
+- os controles do scheduler alteram o estado local, mas não gerenciam processos distribuídos;
+- o dashboard é local e não multiusuário;
+- não há autenticação;
+- não há screenshots embutidos no projeto;
+- o monitoramento ainda é leve e file-backed;
+- a interface pode ser refinada visualmente em versões futuras.
+
+16. CONCLUSÃO
+
+A FASE 5 consolidou o AlphaScope como uma plataforma visual de análise e operação, complementando as capacidades já implementadas nas fases anteriores.
+
+Com essa entrega, o projeto passa a oferecer:
+
+- automação operacional;
+- visualização analítica;
+- acompanhamento de ranking e previsões;
+- monitoramento de paper trading;
+- observação do sentimento de notícias;
+- visão consolidada do estado do sistema.
+
+O AlphaScope agora se apresenta como uma base robusta para evoluções futuras, incluindo:
+
+- dashboard mais avançado;
+- autenticação;
+- monitoramento remoto;
+- operação multiusuário;
+- integração futura com execução real, quando essa fase for habilitada.

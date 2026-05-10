@@ -1,0 +1,9 @@
+{
+  "risk": {
+    "profile": "conservative",
+    "max_trades_per_day": 4,
+    "max_symbol_exposure_pct": 0.08,
+    "max_portfolio_exposure_pct": 0.35,
+    "min_cash_reserve_pct": 0.35
+  }
+}

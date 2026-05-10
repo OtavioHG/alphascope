@@ -1,0 +1,4 @@
+signal_definition,sample_count,win_rate,avg_return,sharpe,max_drawdown,stability_score,asset_count
+breakout_news_volatility,345,1.0,0.027487051297669606,0.8135662809089917,0.0,0.0623,3
+sma_macd_bullish,277,1.0,0.02615416146639715,0.6556697058826786,0.0,0.0588,3
+rsi_oversold_volume_sentiment,3,1.0,0.03792997726933334,2.705564136870447,0.0,0.0104,3

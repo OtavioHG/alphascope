@@ -1,0 +1,9 @@
+{
+  "artifact_path": "D:\\AlphaScope\\models\\nlp\\news_sentiment_model.joblib",
+  "text_column": "clean_text",
+  "label_column": "label",
+  "train_rows": 4,
+  "test_rows": 1,
+  "accuracy": 0.0,
+  "f1_weighted": 0.0
+}

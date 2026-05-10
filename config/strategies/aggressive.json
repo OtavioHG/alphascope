@@ -1,0 +1,11 @@
+{
+  "risk": {
+    "profile": "aggressive",
+    "max_trades_per_day": 12,
+    "max_position_size_pct": 0.12,
+    "max_portfolio_exposure_pct": 0.70
+  },
+  "entry": {
+    "min_entry_score": 0.70
+  }
+}

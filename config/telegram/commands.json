@@ -1,0 +1,26 @@
+{
+  "telegram": {
+    "commands_enabled": [
+      "/start",
+      "/status",
+      "/dashboard",
+      "/positions",
+      "/ranking",
+      "/history",
+      "/risk",
+      "/startbot",
+      "/stopbot",
+      "/restartbot",
+      "/sellall",
+      "/buy",
+      "/sell",
+      "/top",
+      "/logs",
+      "/errors",
+      "/pnl",
+      "/winrate",
+      "/config",
+      "/help"
+    ]
+  }
+}

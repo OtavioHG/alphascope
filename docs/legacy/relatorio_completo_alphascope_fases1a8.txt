@@ -1,0 +1,533 @@
+ALPHASCOPE
+RELATORIO COMPLETO DO PROJETO
+FASES 1 A 8
+
+1. APRESENTACAO GERAL
+
+O AlphaScope e uma plataforma quantitativa para mercado cripto, concebida para evoluir de um sistema de coleta e analise de dados para uma stack completa de inteligencia, modelagem, automacao, monitoramento, producao e pesquisa de alpha.
+
+Ao longo das oito fases implementadas, o projeto passou por uma evolucao incremental e estruturada:
+
+- da ingestao de dados para enriquecimento analitico;
+- da construcao de features para modelagem supervisionada;
+- da previsao para ranking e backtesting;
+- da operacao manual para automacao continua;
+- da CLI para visualizacao em dashboard;
+- da analise isolada para portfolio multiativos;
+- da persistencia local para infraestrutura de producao;
+- da operacao para a pesquisa quantitativa e descoberta de alpha.
+
+O resultado final e uma plataforma modular, extensivel e pronta para continuar evoluindo rumo a execucao real controlada e pesquisa quantitativa continua.
+
+
+2. VISAO EVOLUTIVA DAS FASES
+
+FASE 1
+
+Objetivo:
+- construir a base de dados do sistema.
+
+Entregas principais:
+- ingestao de candles de mercado;
+- ingestao de noticias;
+- organizacao inicial de repositórios e CLI;
+- base de armazenamento local.
+
+Resultado:
+- o projeto passou a ter dados historicos de mercado e noticias como materia-prima para todas as fases seguintes.
+
+
+FASE 2
+
+Objetivo:
+- transformar dados brutos em dados analiticos prontos para modelagem.
+
+Entregas principais:
+- feature engineering tecnico;
+- NLP de sentimento e topicos;
+- pipeline de normalizacao;
+- consolidacao de dataset unico.
+
+Features e sinais adicionados:
+- RSI;
+- MACD;
+- Bollinger Bands;
+- medias moveis;
+- retorno percentual;
+- volatilidade rolling;
+- volume relativo;
+- sentiment_score;
+- topicos e contagem de noticias.
+
+Resultado:
+- o AlphaScope passou a gerar dataset consolidado e reutilizavel para ML.
+
+
+FASE 3
+
+Objetivo:
+- introduzir previsao orientada a series temporais e ranking de oportunidades.
+
+Entregas principais:
+- construcao de target binario configuravel;
+- split temporal correto;
+- treino de modelos de classificacao;
+- avaliacao com metricas obrigatorias;
+- interpretabilidade;
+- previsao em lote;
+- ranking de ativos;
+- backtest integrado.
+
+Modelos implementados:
+- LogisticRegression;
+- RandomForestClassifier;
+- GradientBoostingClassifier.
+
+Resultado:
+- o projeto passou a prever probabilidade de alta relevante em janela futura e ranquear ativos com base no modelo.
+
+
+FASE 4
+
+Objetivo:
+- transformar o fluxo manual em operacao automatizada continua.
+
+Entregas principais:
+- scheduler com tarefas periodicas;
+- pipeline automatico;
+- paper trading;
+- engine de execucao de sinais;
+- sistema de alertas;
+- logging persistente;
+- monitoramento basico.
+
+Resultado:
+- o AlphaScope passou a operar continuamente em modo simulado, gerando sinais, executando paper trades e registrando historico.
+
+
+FASE 5
+
+Objetivo:
+- criar uma camada visual profissional para monitoramento local.
+
+Entregas principais:
+- dashboard Streamlit;
+- pagina inicial com status do sistema;
+- analise de mercado com graficos;
+- ranking de ativos;
+- monitor de trades;
+- monitor de sentimento;
+- monitor do sistema;
+- exibicao de logs e metricas.
+
+Resultado:
+- o projeto ganhou interface local via navegador, facilitando operacao, observacao e interpretacao dos resultados.
+
+
+FASE 6
+
+Objetivo:
+- elevar o projeto para uma plataforma quantitativa com portfolio multiativos e integracoes externas.
+
+Entregas principais:
+- engine de portfolio multiativos;
+- alocacao de capital;
+- risk parity, equal weight e Kelly;
+- validacao walk-forward;
+- otimizacao de estrategia;
+- execucao real preparada;
+- API REST com FastAPI;
+- deploy inicial com Docker.
+
+Resultado:
+- o AlphaScope passou a suportar carteira multiativos, validacao quantitativa mais robusta e pontos de integracao externos.
+
+
+FASE 7
+
+Objetivo:
+- tornar a plataforma mais confiavel, segura e preparada para producao.
+
+Entregas principais:
+- persistencia relacional com SQLAlchemy;
+- migrations de storage;
+- feature store;
+- arquitetura orientada a eventos;
+- seguranca da API com API key, bearer token e rate limit;
+- metricas, tracing e healthcheck;
+- execution guard, reconciliation e retry;
+- expansao da estrutura Docker para producao.
+
+Resultado:
+- o AlphaScope deixou de ser apenas uma stack local e passou a contar com base arquitetural de producao.
+
+
+FASE 8
+
+Objetivo:
+- adicionar uma camada de pesquisa quantitativa e descoberta de alpha, separada da pipeline operacional.
+
+Entregas principais:
+- Alpha Discovery Engine;
+- regime detection;
+- anomaly detection;
+- signal mining;
+- strategy generation;
+- alpha ranking;
+- experiment tracking;
+- hypothesis engine;
+- analise cross-asset;
+- meta-learning inicial;
+- relatorios de pesquisa.
+
+Resultado:
+- o projeto passou a descobrir padroes, testar hipoteses, propor estrategias e apoiar pesquisa quantitativa continua sem interferir na camada operacional.
+
+
+3. ARQUITETURA FINAL DO PROJETO
+
+Ao final da FASE 8, o AlphaScope encontra-se dividido em camadas funcionais complementares:
+
+3.1 CAMADA DE DADOS
+
+- ingestao de mercado;
+- ingestao de noticias;
+- persistencia local e relacional;
+- feature store;
+- repositórios de mercado, sentimento, previsoes, ranking, trades e portfolio.
+
+
+3.2 CAMADA DE INTELIGENCIA ANALITICA
+
+- indicadores tecnicos;
+- NLP de sentimento;
+- classificacao de topicos;
+- consolidacao de dataset.
+
+
+3.3 CAMADA DE MODELAGEM
+
+- construcao de targets;
+- treino de modelos supervisionados;
+- validacao temporal;
+- comparacao e selecao de modelos;
+- previsao e ranking.
+
+
+3.4 CAMADA DE EXECUCAO E SIMULACAO
+
+- backtest;
+- paper broker;
+- portfolio;
+- engine de execucao;
+- gerenciamento de risco;
+- scheduler automatico;
+- pipeline continuo.
+
+
+3.5 CAMADA DE VISUALIZACAO E API
+
+- dashboard Streamlit;
+- FastAPI;
+- endpoints protegidos;
+- monitoramento visual e operacional.
+
+
+3.6 CAMADA DE PRODUCAO
+
+- persistencia relacional;
+- migrations;
+- event bus;
+- rate limit;
+- auth;
+- metricas Prometheus-style;
+- tracing JSON;
+- healthcheck;
+- retry engine;
+- guard rails de execucao;
+- stack Docker com Redis, PostgreSQL, Prometheus e Grafana.
+
+
+3.7 CAMADA DE PESQUISA
+
+- pesquisa de regimes;
+- deteccao de anomalias;
+- mineracao de sinais;
+- geracao de estrategias;
+- ranking de descoberta;
+- tracking de experimentos;
+- analise cross-asset e setorial;
+- meta-learning inicial;
+- relatorios de alpha.
+
+
+4. PRINCIPAIS CAPACIDADES DO ALPHASCOPE
+
+Ao final das oito fases, a plataforma e capaz de:
+
+- coletar dados de mercado e noticias automaticamente;
+- enriquecer dados com indicadores tecnicos e NLP;
+- gerar dataset consolidado para treino e inferencia;
+- treinar modelos de machine learning com corretude temporal;
+- prever probabilidade de movimento relevante;
+- ranquear ativos por oportunidade e risco;
+- rodar backtests e comparar estrategias;
+- operar paper trading continuamente;
+- controlar portfolio e risco;
+- executar scheduler e pipeline automaticos;
+- exibir dashboard local profissional;
+- expor API externa;
+- monitorar a saude do sistema;
+- persistir resultados em banco relacional;
+- publicar eventos internos;
+- proteger endpoints de API;
+- registrar experimentos de pesquisa;
+- detectar regimes e anomalias;
+- minerar sinais e gerar estrategias candidatas;
+- produzir relatorios de descoberta de alpha.
+
+
+5. MODULOS ESTRUTURAIS RELEVANTES
+
+Os principais dominios finais do projeto incluem:
+
+- src/alphascope/models/
+- src/alphascope/backtest/
+- src/alphascope/automation/
+- src/alphascope/trading/
+- src/alphascope/dashboard/
+- src/alphascope/portfolio/
+- src/alphascope/optimization/
+- src/alphascope/api/
+- src/alphascope/storage/
+- src/alphascope/feature_store/
+- src/alphascope/events/
+- src/alphascope/security/
+- src/alphascope/monitoring/
+- src/alphascope/research/
+- src/alphascope/discovery/
+- src/alphascope/meta_learning/
+- src/alphascope/experiments/
+- src/alphascope/analysis/
+- src/alphascope/reports/
+
+
+6. COMANDOS CLI ACUMULADOS
+
+Exemplos importantes de uso ao final da FASE 8:
+
+Fases 2 e 3
+- alphascope build-features
+- alphascope process-news
+- alphascope build-dataset
+- alphascope build-targets
+- alphascope train-model
+- alphascope evaluate-model
+- alphascope predict-assets
+- alphascope rank-assets
+- alphascope run-backtest
+
+Fase 4
+- alphascope run-pipeline
+- alphascope run-paper-trading
+- alphascope run-scheduler
+- alphascope monitor-system
+
+Fase 5
+- alphascope run-dashboard
+
+Fase 6
+- alphascope run-api
+- alphascope run-live-trading
+- alphascope run-walkforward
+- alphascope optimize-strategy
+- alphascope deploy-docker
+
+Fase 7
+- alphascope migrate-db
+- alphascope start-event-bus
+- alphascope run-production
+- alphascope run-healthcheck
+- alphascope reset-cache
+
+Fase 8
+- alphascope detect-regimes
+- alphascope detect-anomalies
+- alphascope mine-signals
+- alphascope generate-strategies
+- alphascope run-research
+- alphascope rank-alpha
+- alphascope generate-alpha-report
+- alphascope phase8-run
+
+
+7. PERSISTENCIA E ARTEFATOS
+
+Pastas e saidas relevantes:
+
+- data/processed/models/
+- data/processed/predictions/
+- data/processed/rankings/
+- data/processed/backtests/
+- data/processed/paper_trades/
+- data/processed/alerts/
+- data/processed/discovery/
+- data/processed/research/
+- data/processed/experiments/
+- data/processed/reports/
+
+Persistencia relacional adicionada:
+
+- market_candles
+- news_data
+- technical_features_v2
+- sentiment_scores
+- model_predictions
+- asset_rankings
+- portfolio_snapshots
+- portfolio_positions
+- trade_history
+- orders
+- backtest_results
+- optimization_results
+- feature_store
+- regimes_detected
+- anomalies_detected
+- mined_signals
+- strategy_candidates
+- experiment_runs
+- discovery_rankings
+- alpha_reports
+
+
+8. SEGURANCA, OBSERVABILIDADE E RESILIENCIA
+
+O AlphaScope passou a possuir:
+
+- API key authentication;
+- bearer token helper;
+- rate limiting;
+- metricas estruturadas;
+- tracing JSON;
+- healthcheck;
+- retry engine;
+- execution guard;
+- reconciliacao de estado;
+- logs persistentes.
+
+Esses elementos tornam a plataforma mais adequada para uso continuo e futura operacao real controlada.
+
+
+9. PESQUISA E DESCOBERTA DE ALPHA
+
+A camada de pesquisa introduzida na FASE 8 tem papel estrategico no projeto:
+
+- nao substitui a pipeline operacional;
+- nao executa trades reais;
+- nao promove automaticamente estrategias para operacao;
+- mantem status de pesquisa:
+  - research_only
+  - candidate
+  - promoted
+
+Isso preserva seguranca arquitetural e separa claramente:
+
+- o que e pesquisa;
+- o que e candidato;
+- o que podera, no futuro, virar estrategia operacional.
+
+
+10. QUALIDADE E TESTES
+
+Ao longo das fases, foram adicionados testes unitarios e de integracao cobrindo:
+
+- ingestao;
+- NLP;
+- features;
+- targets;
+- treino e avaliacao;
+- ranking;
+- backtest;
+- paper broker;
+- scheduler;
+- pipeline automatico;
+- dashboard services;
+- portfolio engine;
+- walk-forward;
+- strategy optimization;
+- storage e migrations;
+- event bus;
+- API security;
+- execution guard;
+- retry engine;
+- regime detection;
+- anomaly detection;
+- signal mining;
+- strategy generation;
+- experiment tracking;
+- research pipeline.
+
+Estado de validacao mais recente:
+
+- 27 testes aprovados;
+- 2 testes ignorados por ausencia de fastapi no venv ativo do ambiente atual.
+
+
+11. PONTOS FORTES DO PROJETO
+
+Entre os principais pontos fortes do AlphaScope estao:
+
+- evolucao incremental bem estruturada;
+- separacao clara entre operacao e pesquisa;
+- preocupacao com corretude temporal;
+- arquitetura modular;
+- reuso de componentes entre fases;
+- preparacao para crescimento futuro;
+- foco em observabilidade e seguranca;
+- base pronta para pesquisa quantitativa continua.
+
+
+12. LIMITACOES ATUAIS
+
+Apesar do avanço significativo, a plataforma ainda possui limitacoes naturais de uma V1/V2 evolutiva:
+
+- execucao real permanece desativada por seguranca;
+- parte da compatibilidade com artefatos file-based ainda e mantida;
+- o event bus usa fallback em memoria em ambiente local;
+- a camada de pesquisa usa heuristicas iniciais e nao modelos mais sofisticados;
+- a promocao de estrategias ainda deve ser manual;
+- Prometheus, Grafana, Redis e PostgreSQL foram preparados, mas dependem de ambiente apropriado para uso pleno;
+- parte dos testes de API depende da instalacao do FastAPI no venv em uso.
+
+
+13. CONCLUSAO FINAL
+
+O AlphaScope evoluiu de um projeto de ingestao e analise de dados para uma plataforma quantitativa abrangente, composta por:
+
+- inteligencia de dados;
+- machine learning;
+- ranking e backtesting;
+- automacao continua;
+- paper trading;
+- dashboard visual;
+- portfolio multiativos;
+- validacao e otimizacao quantitativa;
+- API e deploy;
+- infraestrutura de producao;
+- motor de pesquisa e descoberta de alpha.
+
+Do ponto de vista de engenharia, o projeto hoje possui uma base muito mais madura do que no inicio, com componentes suficientes para:
+
+- operacao simulada continua;
+- analise profunda de ativos;
+- monitoramento operacional;
+- pesquisa de novas oportunidades;
+- preparacao segura para futura execucao real.
+
+Em termos de maturidade arquitetural, a plataforma ja pode ser entendida como uma Quant Platform em evolucao, com clara divisao entre:
+
+- camada operacional;
+- camada de producao;
+- camada de pesquisa.
+
+Esse desenho permite continuar expandindo o AlphaScope com seguranca, qualidade e extensibilidade, tornando-o apto para novas fases de sofisticacao quantitativa, governanca de estrategias e integracao com ambientes reais de trading no futuro.

@@ -1,0 +1,12 @@
+{
+  "risk": {
+    "max_trades_per_day": 8,
+    "max_consecutive_losses": 3,
+    "daily_drawdown_pause_pct": 0.04,
+    "emergency_drawdown_pct": 0.08,
+    "max_symbol_exposure_pct": 0.12,
+    "max_portfolio_exposure_pct": 0.55,
+    "max_simultaneous_positions": 4,
+    "volatile_asset_threshold": 0.09
+  }
+}

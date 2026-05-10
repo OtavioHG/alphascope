@@ -1,0 +1,351 @@
+ALPHASCOPE
+RELATORIO TECNICO - FASE 7
+PRODUCTION QUANT PLATFORM
+
+1. RESUMO
+
+A FASE 7 do projeto AlphaScope teve como objetivo transformar a plataforma em uma base de producao mais robusta, segura e escalavel, preparada para operacao continua e evolucao futura para execucao real. Nesta etapa, o sistema passou a incorporar persistencia relacional, arquitetura orientada a eventos, feature store, seguranca na API, observabilidade, mecanismos de resiliencia operacional e estrutura de deploy mais completa.
+
+O foco principal da entrega foi manter compatibilidade com as fases anteriores, sem quebrar o pipeline existente, ao mesmo tempo em que foi adicionada uma camada nova de infraestrutura pronta para uso em ambiente de producao.
+
+
+2. OBJETIVOS DA FASE 7
+
+Os principais objetivos desta fase foram:
+
+- migrar a persistencia principal para uma base relacional;
+- introduzir uma estrutura de feature store para treino e inferencia;
+- implementar um event bus interno para desacoplamento do pipeline;
+- proteger a API com autenticacao e controle de taxa;
+- adicionar metricas, healthcheck e tracing;
+- criar guard rails para execucao e mecanismos de retry;
+- expandir a estrutura de deploy com servicos de producao.
+
+
+3. MODULOS IMPLEMENTADOS
+
+3.1 STORAGE RELACIONAL
+
+Foi criada a camada:
+
+src/alphascope/storage/
+
+Arquivos principais:
+
+- database.py
+- migrations/manager.py
+- models/production.py
+
+Responsabilidades:
+
+- criar engine SQLAlchemy para ambiente de producao;
+- permitir uso de SQLite local como fallback para testes e execucao offline;
+- definir modelos relacionais para candles, noticias, features, previsoes, rankings, snapshots de portfolio, posicoes, trades, ordens, backtests e otimizacoes;
+- aplicar migrations iniciais por meio do MigrationManager.
+
+Tabelas modeladas:
+
+- market_candles
+- news_data
+- technical_features_v2
+- sentiment_scores
+- model_predictions
+- asset_rankings
+- portfolio_snapshots
+- portfolio_positions
+- trade_history
+- orders
+- backtest_results
+- optimization_results
+- feature_store
+
+
+3.2 FEATURE STORE
+
+Foi criada a camada:
+
+src/alphascope/feature_store/
+
+Arquivos:
+
+- feature_registry.py
+- feature_store.py
+
+Funcionalidades:
+
+- registro central de features disponiveis;
+- armazenamento de snapshots de features calculadas;
+- carregamento de features para treino e inferencia;
+- suporte inicial para features como RSI, MACD, Bollinger, volatility, volume_ratio, sentiment_score, news_count e momentum.
+
+Essa camada aumenta a reutilizacao de features e organiza melhor o consumo pelos modelos.
+
+
+3.3 EVENT BUS
+
+Foi criada a camada:
+
+src/alphascope/events/
+
+Arquivos:
+
+- event_bus.py
+- event_types.py
+- consumers/logging_consumer.py
+- producers/pipeline_producer.py
+
+Eventos principais implementados:
+
+- MarketDataUpdated
+- FeaturesComputed
+- ModelPredictionReady
+- RankingUpdated
+- TradeExecuted
+- PortfolioUpdated
+
+O event bus foi integrado ao pipeline automatico, permitindo publicar eventos internos a cada etapa relevante da execucao. Para ambiente local e de testes, o transporte foi implementado com um cliente Redis compativel em memoria, preservando a arquitetura desacoplada sem depender de infraestrutura externa para rodar o projeto.
+
+
+3.4 SEGURANCA DA API
+
+Foi criada a camada:
+
+src/alphascope/security/
+
+Arquivos:
+
+- api_keys.py
+- auth.py
+- rate_limit.py
+
+Controles implementados:
+
+- autenticacao via API Key;
+- suporte a bearer token assinado;
+- rate limiting por cliente;
+- protecao dos endpoints da API.
+
+Endpoints protegidos:
+
+- GET /ranking
+- GET /portfolio
+- GET /trades
+- GET /signals
+- POST /pipeline/run
+- GET /metrics
+
+Tambem foi adicionado:
+
+- GET /health
+
+para verificacao operacional do sistema.
+
+
+3.5 MONITORAMENTO E OBSERVABILIDADE
+
+Foi expandida a camada:
+
+src/alphascope/monitoring/
+
+Arquivos:
+
+- metrics.py
+- tracing.py
+- healthcheck.py
+
+Entregas:
+
+- emissao de metricas operacionais em formato estruturado;
+- renderizacao basica em formato Prometheus;
+- healthcheck da stack;
+- tracing JSON para eventos do pipeline;
+- coleta de metricas como duracao do pipeline, numero de sinais, numero de trades, valor de portfolio e erros de sistema.
+
+
+3.6 EXECUCAO RESILIENTE
+
+Foi expandida a camada:
+
+src/alphascope/execution/
+
+Arquivos:
+
+- execution_guard.py
+- reconciliation.py
+- retry_engine.py
+
+Funcionalidades:
+
+- validacao de exposicao maxima;
+- validacao de liquidez minima;
+- validacao de volatilidade extrema;
+- validacao de risco por trade;
+- reconciliacao entre estado interno e estado externo;
+- repeticao automatica de operacoes falhas com backoff simples.
+
+Esses componentes preparam a plataforma para operacao mais segura em cenarios de automacao continua.
+
+
+4. INTEGRACAO COM O PIPELINE EXISTENTE
+
+O pipeline automatico existente da FASE 4 foi atualizado para publicar eventos, persistir resultados em tabelas relacionais, alimentar a feature store e registrar metricas de observabilidade.
+
+Fluxo atualizado:
+
+1. ingestao de mercado
+2. ingestao de noticias
+3. atualizacao de features
+4. construcao de dataset
+5. inferencia do modelo
+6. atualizacao do ranking
+7. paper trading
+8. geracao de alertas
+9. persistencia SQL
+10. emissao de metricas e tracing
+
+Essa integracao manteve compatibilidade com os artefatos file-based das fases anteriores, o que facilita transicao gradual para a persistencia de producao.
+
+
+5. API DE PRODUCAO
+
+A API FastAPI foi expandida para operar como interface externa da plataforma.
+
+Endpoints atuais:
+
+- GET /ranking
+- GET /portfolio
+- GET /trades
+- GET /signals
+- POST /pipeline/run
+- GET /health
+- GET /metrics
+
+Caracteristicas:
+
+- autenticacao via X-API-Key;
+- limite de requisicoes por cliente;
+- integracao com pipeline automatico;
+- exportacao de metricas para monitoramento externo.
+
+
+6. CLI DA FASE 7
+
+Novos comandos adicionados:
+
+- alphascope migrate-db
+- alphascope start-event-bus
+- alphascope run-production
+- alphascope run-healthcheck
+- alphascope reset-cache
+
+Uso esperado:
+
+alphascope migrate-db
+alphascope start-event-bus
+alphascope run-production
+alphascope run-healthcheck
+alphascope reset-cache
+
+
+7. DEPLOY E INFRAESTRUTURA
+
+Foi adicionada a estrutura:
+
+deployment/docker/docker-compose.production.yml
+
+Servicos previstos:
+
+- alphascope-core
+- alphascope-api
+- alphascope-dashboard
+- postgres
+- redis
+- prometheus
+- grafana
+
+Essa organizacao prepara o sistema para deploy remoto mais completo, com observabilidade e componentes de suporte a producao.
+
+
+8. CONFIGURACOES ADICIONADAS
+
+O arquivo .env.example foi atualizado com novas variaveis:
+
+- STORAGE_DATABASE_URL
+- POSTGRES_HOST
+- POSTGRES_PORT
+- POSTGRES_DB
+- POSTGRES_USER
+- POSTGRES_PASSWORD
+- REDIS_HOST
+- REDIS_PORT
+- API_KEY_SECRET
+- ENABLE_LIVE_TRADING
+
+Essas configuracoes permitem separar ambiente local, ambiente de teste e ambiente de producao.
+
+
+9. TESTES IMPLEMENTADOS
+
+Foram adicionados testes para:
+
+- migrations e schema de storage;
+- feature store;
+- event bus;
+- rate limiting;
+- autenticacao por API key;
+- execution guard;
+- reconciliation;
+- retry engine;
+- regressao da API com protecao habilitada.
+
+Arquivos adicionados:
+
+- tests/unit/test_phase7_storage.py
+- tests/unit/test_phase7_events_security.py
+- tests/unit/test_phase7_execution.py
+
+
+10. VALIDACAO EXECUTADA
+
+Comandos executados:
+
+venv\Scripts\python -m pytest tests\unit\test_phase7_storage.py tests\unit\test_phase7_events_security.py tests\unit\test_phase7_execution.py tests\integration\test_phase6_api.py tests\unit\test_phase6_quant.py tests\unit\test_phase5_services.py tests\unit\test_phase4_trading.py tests\unit\test_phase4_scheduler.py tests\integration\test_phase4_pipeline.py tests\unit\test_phase3_targets.py tests\unit\test_phase3_training.py tests\unit\test_phase3_ranking_backtest.py tests\integration\test_phase3_pipeline.py -p no:cacheprovider --basetemp data\processed\pytest_tmp
+
+venv\Scripts\python -m compileall src tests
+
+venv\Scripts\python -c "import alphascope.cli; print('cli-ok')"
+
+Resultado:
+
+- 24 testes aprovados
+- 2 testes ignorados
+
+Motivo dos testes ignorados:
+
+- o ambiente atual nao possui fastapi instalado no venv ativo, entao os testes especificos da API foram pulados automaticamente
+
+
+11. LIMITACOES DA ENTREGA
+
+Limites atuais da V1 da FASE 7:
+
+- o transporte Redis ainda opera com fallback em memoria no ambiente local;
+- a migracao esta implementada como schema bootstrap inicial, nao como pipeline completo de Alembic versionado;
+- a execucao real continua desativada;
+- parte da persistencia file-based continua mantida para compatibilidade com fases anteriores;
+- Prometheus e Grafana foram preparados no deploy, mas nao executados neste ambiente.
+
+
+12. CONCLUSAO
+
+A FASE 7 elevou o AlphaScope de uma plataforma local quantitativa para uma base de producao muito mais confiavel e organizada. A nova arquitetura adiciona persistencia relacional, observabilidade, seguranca de API, eventos internos e mecanismos de resiliencia, sem perder compatibilidade com as fases anteriores.
+
+Com isso, o projeto passa a ter estrutura adequada para futuras evolucoes como:
+
+- consolidacao total da persistencia em PostgreSQL;
+- substituicao do event bus em memoria por Redis real;
+- endurecimento operacional da execucao real;
+- deploy remoto completo com monitoramento em producao;
+- expansao da API para integracoes externas mais amplas.
+
+Em termos de maturidade do sistema, a FASE 7 representa a transicao do AlphaScope para uma arquitetura de plataforma quantitativa pronta para producao controlada.

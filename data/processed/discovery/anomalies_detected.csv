@@ -1,0 +1,2 @@
+timestamp,symbol,anomaly_score,anomaly_type,anomaly_window,affected_assets
+2024-03-02 16:00:00,FETUSDT,3.1608,volatility_spike,12,['FETUSDT']

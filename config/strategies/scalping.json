@@ -1,0 +1,16 @@
+{
+  "risk": {
+    "profile": "scalping",
+    "max_trades_per_day": 20,
+    "same_symbol_cooldown_minutes": 10,
+    "max_position_size_pct": 0.05
+  },
+  "entry": {
+    "min_entry_score": 0.78,
+    "min_breakout_strength": 0.004
+  },
+  "exit": {
+    "max_trade_hours": 4,
+    "trailing_stop_pct": 0.006
+  }
+}

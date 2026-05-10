@@ -1,0 +1,3 @@
+symbol,score_high,score_risk,score_final,predicted_label,predicted_probability,confidence_score,timestamp
+BTCUSDT,0.82,0.0,0.82,1,0.82,0.6399999999999999,2024-01-01
+ETHUSDT,0.25,1.0,0.0,0,0.25,0.5,2024-01-01

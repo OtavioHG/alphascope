@@ -1,0 +1,79 @@
+{
+  "regimes_rows": 360,
+  "anomalies_rows": 1,
+  "signals_rows": 3,
+  "strategies_rows": 3,
+  "ranking_rows": 3,
+  "selected_features": [
+    "volatility",
+    "macd",
+    "macd_signal",
+    "pct_return",
+    "bb_lower"
+  ],
+  "dataset_hash": "282defafbe451af4c52a3578fca53563052a66c96d0a0747f6e99d72c715850d",
+  "validation": {
+    "rows": 360,
+    "missing_data": {
+      "timestamp": 0,
+      "symbol": 0,
+      "open": 0,
+      "high": 0,
+      "low": 0,
+      "close": 0,
+      "volume": 0,
+      "rsi": 0,
+      "macd": 0,
+      "macd_signal": 0,
+      "bb_upper": 0,
+      "bb_lower": 0,
+      "sma_20": 0,
+      "sma_50": 0,
+      "pct_return": 0,
+      "volatility": 0,
+      "relative_volume": 0,
+      "sentiment_score": 0,
+      "news_count_window": 0,
+      "avg_sentiment_window": 0
+    },
+    "outliers": {
+      "open": 53,
+      "high": 53,
+      "low": 53,
+      "close": 53,
+      "volume": 0,
+      "rsi": 0,
+      "macd": 74,
+      "macd_signal": 74,
+      "bb_upper": 53,
+      "bb_lower": 53,
+      "sma_20": 53,
+      "sma_50": 53,
+      "pct_return": 74,
+      "volatility": 3,
+      "relative_volume": 0,
+      "sentiment_score": 0,
+      "news_count_window": 0,
+      "avg_sentiment_window": 0
+    },
+    "schema_changes": [],
+    "data_drift": {
+      "open": 165.96883017012487,
+      "high": 167.6285184718261,
+      "low": 164.30914186842364,
+      "close": 165.96883017012487,
+      "volume": 1595.0,
+      "rsi": 54.0,
+      "macd": 0.006925000000000001,
+      "macd_signal": 0.0034625000000000003,
+      "bb_upper": 169.28820677352738,
+      "bb_lower": 162.64945356672237
+    }
+  },
+  "reports": {
+    "text_path": "data\\processed\\reports\\alpha_discovery_report.txt",
+    "ranking_path": "data\\processed\\reports\\alpha_discovery_ranking.csv",
+    "strategies_path": "data\\processed\\reports\\strategy_candidates.csv",
+    "signals_path": "data\\processed\\reports\\mined_signals.csv"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "risk": {
+    "max_trades_per_day": 8,
+    "max_consecutive_losses": 3,
+    "daily_drawdown_pause_pct": 0.04
+  }
+}

@@ -1,0 +1,96 @@
+[
+  {
+    "name": "RSI",
+    "description": "Relative Strength Index",
+    "source": "technical",
+    "online_ready": true,
+    "version": "v1",
+    "owner": "alphascope",
+    "tags": [
+      "momentum",
+      "oscillator"
+    ]
+  },
+  {
+    "name": "MACD",
+    "description": "Moving Average Convergence Divergence",
+    "source": "technical",
+    "online_ready": true,
+    "version": "v1",
+    "owner": "alphascope",
+    "tags": [
+      "trend",
+      "momentum"
+    ]
+  },
+  {
+    "name": "Bollinger",
+    "description": "Bollinger Bands",
+    "source": "technical",
+    "online_ready": true,
+    "version": "v1",
+    "owner": "alphascope",
+    "tags": [
+      "volatility",
+      "bands"
+    ]
+  },
+  {
+    "name": "volatility",
+    "description": "Rolling volatility",
+    "source": "technical",
+    "online_ready": true,
+    "version": "v1",
+    "owner": "alphascope",
+    "tags": [
+      "risk",
+      "volatility"
+    ]
+  },
+  {
+    "name": "volume_ratio",
+    "description": "Relative volume",
+    "source": "technical",
+    "online_ready": true,
+    "version": "v1",
+    "owner": "alphascope",
+    "tags": [
+      "volume"
+    ]
+  },
+  {
+    "name": "sentiment_score",
+    "description": "Average sentiment score",
+    "source": "nlp",
+    "online_ready": true,
+    "version": "v1",
+    "owner": "alphascope",
+    "tags": [
+      "sentiment",
+      "news"
+    ]
+  },
+  {
+    "name": "news_count",
+    "description": "News count per window",
+    "source": "nlp",
+    "online_ready": true,
+    "version": "v1",
+    "owner": "alphascope",
+    "tags": [
+      "news",
+      "flow"
+    ]
+  },
+  {
+    "name": "momentum",
+    "description": "Recent momentum",
+    "source": "technical",
+    "online_ready": true,
+    "version": "v1",
+    "owner": "alphascope",
+    "tags": [
+      "momentum"
+    ]
+  }
+]

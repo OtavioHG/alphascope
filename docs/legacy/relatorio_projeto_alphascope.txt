@@ -1,0 +1,336 @@
+RELATORIO DO PROJETO ALPHASCOPE
+
+1. VISÃO GERAL
+
+O AlphaScope é uma plataforma de inteligência de mercado voltada ao mercado cripto. O projeto foi estruturado para coletar dados de mercado e notícias, enriquecer esses dados com indicadores técnicos e processamento de linguagem natural, consolidar um dataset para análise e, na FASE 3, aplicar Machine Learning para identificar oportunidades de curto prazo, ranquear ativos e validar estratégias por meio de backtesting.
+
+O objetivo principal do sistema é transformar dados brutos em sinais úteis, explicáveis e reproduzíveis, com foco em arquitetura limpa, modularidade, integração por CLI e extensibilidade para evoluções futuras.
+
+2. OBJETIVOS DO PROJETO
+
+Os principais objetivos do AlphaScope são:
+
+- ingerir candles e notícias relevantes do mercado cripto;
+- calcular indicadores técnicos e sinais derivados;
+- aplicar NLP para sentimento e tópicos de notícias;
+- consolidar datasets prontos para modelagem;
+- treinar modelos de Machine Learning com validação temporal;
+- gerar previsões probabilísticas por ativo;
+- ranquear ativos por oportunidade e risco;
+- validar sinais por backtesting;
+- manter o sistema desacoplado, testável e executável por linha de comando.
+
+3. ESTRUTURA DO PROJETO
+
+O projeto foi organizado em módulos com responsabilidades bem definidas:
+
+- src/alphascope/ingestion
+  Responsável pela ingestão de dados de mercado, notícias e ativos em tendência.
+
+- src/alphascope/features
+  Responsável pelo cálculo de indicadores técnicos e pela consolidação do dataset.
+
+- src/alphascope/nlp
+  Responsável pela classificação de sentimento e identificação de tópicos em notícias.
+
+- src/alphascope/models
+  Responsável pela construção de dataset para ML, geração de target, treino, avaliação, predição, ranking e registro de artefatos.
+
+- src/alphascope/backtest
+  Responsável pela estratégia baseada em probabilidade, engine de simulação e métricas de performance.
+
+- src/alphascope/domain
+  Contém schemas e estruturas de configuração do domínio da aplicação.
+
+- src/alphascope/infrastructure
+  Camada de persistência, sessão de banco e repositórios.
+
+- tests
+  Contém testes unitários e de integração.
+
+4. FASE 2 DO PROJETO
+
+A FASE 2 consolidou a base analítica do AlphaScope. Nessa etapa foram implementados:
+
+- ingestão de candles de mercado;
+- ingestão de notícias;
+- cálculo de RSI, MACD, bandas de Bollinger, médias móveis, volatilidade e volume relativo;
+- processamento de sentimento de notícias;
+- classificação de tópicos;
+- pipeline de consolidação dos dados em um dataset final;
+- CLI para execução das rotinas;
+- testes unitários dos módulos principais.
+
+Essa fase preparou os dados e a infraestrutura necessários para a evolução para Machine Learning.
+
+5. FASE 3 DO PROJETO
+
+A FASE 3 introduziu o primeiro módulo de Machine Learning realmente operacional do AlphaScope, com foco em previsão de oportunidade de curto prazo no mercado cripto.
+
+O problema foi modelado inicialmente como classificação binária:
+
+- target = 1 quando o retorno futuro do ativo ultrapassa um limiar configurável;
+- target = 0 caso contrário.
+
+Exemplo padrão:
+
+- horizonte futuro: 4 candles;
+- limiar de retorno: 1,5%.
+
+Formula:
+
+target = 1 se close(t+4) / close(t) - 1 > 0.015
+
+6. FUNCIONALIDADES IMPLEMENTADAS NA FASE 3
+
+6.1. Dataset Builder
+
+Foi criado um builder de dataset para:
+
+- carregar a saída da FASE 2;
+- normalizar nomes de colunas;
+- selecionar features úteis;
+- preencher valores ausentes sem usar informação futura;
+- criar features derivadas para o contexto cripto;
+- permitir filtros por símbolo, intervalo e janela temporal;
+- remover colunas com risco de leakage.
+
+6.2. Features Utilizadas
+
+O pipeline de modelagem utiliza, quando disponíveis:
+
+- RSI;
+- MACD;
+- MACD signal;
+- Bollinger upper;
+- Bollinger lower;
+- SMA 20;
+- SMA 50;
+- retorno percentual;
+- volatilidade rolling;
+- volume relativo;
+- sentiment score;
+- topic score;
+- quantidade de notícias por janela;
+- média de sentimento por janela.
+
+Também foram adicionadas features derivadas:
+
+- distância entre preço e SMA20;
+- distância entre preço e SMA50;
+- largura das bandas de Bollinger;
+- flag SMA20 maior que SMA50;
+- momentum recente;
+- desvio do volume em relação à média rolling.
+
+6.3. Target Builder
+
+Foi implementado um construtor de target binário configurável com:
+
+- future_horizon;
+- return_threshold;
+- group_column;
+- price_column;
+- target_column.
+
+O cálculo respeita estritamente a ordem temporal e não usa informação futura nas features.
+
+6.4. Split Temporal
+
+Foi implementado split temporal, sem embaralhamento aleatório:
+
+- treino: primeiros 70%;
+- validação: próximos 15%;
+- teste: últimos 15%.
+
+Também foi deixada uma base para walk-forward split.
+
+6.5. Modelos de Machine Learning
+
+Os modelos iniciais implementados foram:
+
+- Logistic Regression;
+- Random Forest Classifier;
+- Gradient Boosting Classifier.
+
+Os modelos são treinados e comparados automaticamente.
+
+6.6. Avaliação
+
+As métricas obrigatórias calculadas incluem:
+
+- accuracy;
+- precision;
+- recall;
+- f1-score;
+- roc_auc;
+- confusion matrix.
+
+O processo escolhe o melhor modelo usando uma combinação de:
+
+- F1-score;
+- ROC-AUC;
+- precision.
+
+6.7. Interpretabilidade
+
+Foi implementado um relatório de interpretabilidade com:
+
+- importância de features para modelos baseados em árvore;
+- coeficientes absolutos para regressão logística;
+- relatório salvo em data/processed/model_reports/.
+
+6.8. Predição
+
+Foi implementado um módulo de predição capaz de retornar:
+
+- predicted_label;
+- predicted_probability;
+- confidence_score.
+
+O módulo suporta:
+
+- previsão por ativo;
+- previsão em lote;
+- uso do artefato salvo do melhor modelo.
+
+6.9. Ranking de Ativos
+
+Foi criado um sistema de ranking baseado em:
+
+- score de alta, derivado da predicted_probability;
+- score de risco, baseado principalmente em volatilidade e liquidez relativa;
+- score final, combinando oportunidade e risco.
+
+O ranking pode ser exportado em CSV.
+
+6.10. Backtesting
+
+Foi implementado um backtest inicial integrado ao modelo.
+
+Regras da estratégia:
+
+- BUY se predicted_probability >= 0.75;
+- SELL se predicted_probability <= 0.35;
+- HOLD nos demais casos.
+
+O engine de backtest simula:
+
+- carteira;
+- posição comprada ou zerada;
+- fee configurável;
+- slippage configurável;
+- registro de trades;
+- curva de equity.
+
+Métricas calculadas:
+
+- total return;
+- cumulative return;
+- sharpe ratio;
+- max drawdown;
+- win rate;
+- profit factor;
+- número de trades.
+
+7. PERSISTÊNCIA
+
+Na FASE 3, a persistência foi implementada de forma file-backed para manter o sistema funcional sem exigir migração de banco nesta etapa.
+
+São gerados registros e artefatos em:
+
+- data/processed/models/
+- data/processed/predictions/
+- data/processed/rankings/
+- data/processed/backtests/
+- data/processed/model_reports/
+
+Também foram adicionados repositórios para:
+
+- model runs;
+- predictions;
+- rankings;
+- backtest runs;
+- backtest trades.
+
+8. CLI IMPLEMENTADA
+
+Além dos comandos existentes, a FASE 3 adicionou:
+
+- alphascope build-targets
+- alphascope train-model
+- alphascope evaluate-model
+- alphascope predict-assets
+- alphascope rank-assets
+- alphascope run-backtest
+- alphascope phase3-run
+
+Exemplos:
+
+alphascope build-targets --dataset-path data/processed/dataset.csv --symbol BTCUSDT --interval 1h --horizon 4 --threshold 0.015
+
+alphascope train-model --dataset-path data/processed/dataset.csv --symbol BTCUSDT --interval 1h
+
+alphascope evaluate-model --symbol BTCUSDT --interval 1h
+
+alphascope predict-assets --dataset-path data/processed/dataset.csv --interval 1h
+
+alphascope rank-assets --dataset-path data/processed/dataset.csv --interval 1h
+
+alphascope run-backtest --dataset-path data/processed/dataset.csv --symbol BTCUSDT --interval 1h
+
+alphascope phase3-run --dataset-path data/processed/dataset.csv --symbol BTCUSDT --interval 1h
+
+9. TESTES
+
+Foram adicionados testes para garantir robustez da FASE 3, cobrindo:
+
+- geração de target;
+- split temporal;
+- prevenção de leakage;
+- treino de modelo;
+- cálculo de métricas;
+- ranking de ativos;
+- backtest engine;
+- fluxo integrado de ponta a ponta.
+
+Resultado da validação implementada:
+
+- 8 testes da FASE 3 executados com sucesso.
+
+10. QUALIDADES TÉCNICAS DO PROJETO
+
+As principais qualidades técnicas observadas no AlphaScope são:
+
+- separação clara por camadas;
+- foco em corretude temporal;
+- boa base para reprodutibilidade;
+- pipeline de ML explicável;
+- integração entre modelagem, ranking e backtesting;
+- CLI adequada para operação e automação;
+- testes automatizados cobrindo os principais riscos da versão atual.
+
+11. LIMITAÇÕES ATUAIS DA V1
+
+Apesar de funcional, a V1 ainda possui limitações importantes:
+
+- ranking de risco ainda usa heurística simples;
+- backtest trabalha com estratégia long/flat, sem carteira multiativos;
+- persistência da FASE 3 ainda não foi migrada para tabelas reais no banco;
+- XGBoost e LightGBM ainda não foram integrados ao registry;
+- validação walk-forward não está exposta como padrão na CLI;
+- ainda não houve execução real de mercado nesta etapa.
+
+12. CONCLUSÃO
+
+O AlphaScope evoluiu de uma plataforma de coleta e enriquecimento de dados para um sistema analítico com capacidade de modelagem preditiva, ranking de ativos e validação por backtesting.
+
+Com a entrega da FASE 3, o projeto passou a contar com uma base sólida para:
+
+- identificar oportunidades de curto prazo;
+- comparar modelos de ML com validação temporal;
+- explicar os sinais gerados;
+- ranquear ativos com critérios quantitativos;
+- testar estratégias de forma reproduzível.
+
+Essa versão representa uma V1 robusta, clara e funcional, pronta para servir de base para futuras evoluções, como otimização de hiperparâmetros, modelos mais avançados, portfólio multiativos, persistência relacional completa e validação walk-forward operacional.

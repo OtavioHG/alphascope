@@ -1,0 +1,113 @@
+﻿AlphaScope V1 - Arvore e Indice
+Gerado em: 2026-03-22 20:46:16
+
+ARVORE V1
+alphascope/
+  src/
+    alphascope/
+      cli.py
+      config/
+        __init__.py
+        constants.py
+        settings.py
+      core/
+        __init__.py
+        exceptions.py
+        logger.py
+        pipeline.py
+      ingestion/
+        __init__.py
+        binance_client.py
+        market_ingestor.py
+        schemas.py
+      storage/
+        __init__.py
+        database.py
+        models.py
+        models/
+          __init__.py
+        repositories.py
+      features/
+        __init__.py
+        technical.py
+        feature_pipeline.py
+      ranking/
+        __init__.py
+        scorer.py
+        ranker.py
+      backtest/
+        strategy.py
+        metrics.py
+        engine.py
+      execution/
+        portfolio.py
+        paper_trader.py
+      utils/
+        __init__.py
+        time.py
+        io.py
+  tests/
+    conftest.py
+    test_ingestion.py
+    test_features.py
+    test_ranking.py
+    test_backtest.py
+  requirements.txt
+  .env.example
+  pyproject.toml
+  README.md
+
+INDICE RESUMIDO
+- src/alphascope/__init__.py :: Metadados do pacote
+- src/alphascope/cli.py :: CLI principal da V1
+- src/alphascope/config/__init__.py :: Exports de configuracao
+- src/alphascope/config/constants.py :: Constantes globais do projeto
+- src/alphascope/config/settings.py :: Carregamento de ambiente e parametros
+- src/alphascope/core/__init__.py :: Exports do core
+- src/alphascope/core/exceptions.py :: Excecoes customizadas
+- src/alphascope/core/logger.py :: Logger centralizado
+- src/alphascope/core/pipeline.py :: Pipeline ponta a ponta
+- src/alphascope/ingestion/__init__.py :: Exports de ingestao
+- src/alphascope/ingestion/schemas.py :: Contratos de ingestao
+- src/alphascope/ingestion/binance_client.py :: Cliente Binance com retry e timeout
+- src/alphascope/ingestion/market_ingestor.py :: Orquestracao da coleta e persistencia
+- src/alphascope/storage/__init__.py :: Exports de storage
+- src/alphascope/storage/database.py :: Engine, sessao e bootstrap do banco
+- src/alphascope/storage/models.py :: Definicoes ORM da V1
+- src/alphascope/storage/models/__init__.py :: Modelos ORM ativos do pacote
+- src/alphascope/storage/repositories.py :: Persistencia e leitura de datasets
+- src/alphascope/features/__init__.py :: Exports de features
+- src/alphascope/features/technical.py :: Indicadores tecnicos
+- src/alphascope/features/feature_pipeline.py :: Pipeline de geracao de features
+- src/alphascope/ranking/__init__.py :: Exports de ranking
+- src/alphascope/ranking/scorer.py :: Score cross-sectional e historico
+- src/alphascope/ranking/ranker.py :: Ordenacao final dos ativos
+- src/alphascope/backtest/strategy.py :: Geracao de sinais BUY/SELL/HOLD
+- src/alphascope/backtest/metrics.py :: Metricas do backtest
+- src/alphascope/backtest/engine.py :: Motor de simulacao historica
+- src/alphascope/execution/portfolio.py :: Estado da carteira simulada
+- src/alphascope/execution/paper_trader.py :: Paper trading e snapshots
+- src/alphascope/utils/__init__.py :: Exports utilitarios
+- src/alphascope/utils/time.py :: Helpers de tempo
+- src/alphascope/utils/io.py :: Helpers de IO e parsing
+- tests/conftest.py :: Configuracao de imports para testes
+- tests/test_ingestion.py :: Teste de ingestao
+- tests/test_features.py :: Teste de features
+- tests/test_ranking.py :: Teste de ranking
+- tests/test_backtest.py :: Teste de backtest
+- requirements.txt :: Dependencias da V1
+- .env.example :: Exemplo de configuracao
+- pyproject.toml :: Empacotamento e pytest
+- README.md :: Documentacao operacional
+
+ORDEM DE EXECUCAO
+1. python -m alphascope.cli ingest-market --symbols BTCUSDT,ETHUSDT,SOLUSDT --interval 1h --limit 500
+2. python -m alphascope.cli build-features --symbols BTCUSDT,ETHUSDT,SOLUSDT --interval 1h
+3. python -m alphascope.cli rank-assets --symbols BTCUSDT,ETHUSDT,SOLUSDT --interval 1h
+4. python -m alphascope.cli backtest --symbol BTCUSDT --interval 1h
+5. python -m alphascope.cli paper-trade --symbols BTCUSDT,ETHUSDT,SOLUSDT --interval 1h
+6. python -m alphascope.cli run-pipeline --symbols BTCUSDT,ETHUSDT,SOLUSDT --interval 1h --limit 500
+
+STATUS
+- pytest: 4 passed
+- CLI help: operacional

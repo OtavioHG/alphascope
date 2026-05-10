@@ -1,0 +1,15 @@
+ALPHASCOPE ALPHA DISCOVERY REPORT
+
+Top strategies:
+- strategy_003: score=112.5403 status=research_only
+- strategy_001: score=67.5790 status=candidate
+- strategy_002: score=62.4779 status=candidate
+
+Top anomalies:
+- FETUSDT volatility_spike score=3.1608
+
+Hypotheses:
+- O mercado atual favorece estrategias no regime sideways.
+- Eventos do tipo volatility_spike estao antecedendo movimentos fora do padrao.
+- A estrategia strategy_003 mostra melhor robustez na amostra atual.
+- O setor infra lidera a rotacao recente e merece monitoramento prioritario.

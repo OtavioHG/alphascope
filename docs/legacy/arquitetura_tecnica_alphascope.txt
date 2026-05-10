@@ -1,0 +1,783 @@
+ALPHASCOPE
+ARQUITETURA TECNICA DO SISTEMA
+VERSAO DOCUMENTAL
+
+1. INTRODUCAO
+
+O AlphaScope e uma plataforma quantitativa de inteligencia de mercado cripto orientada por dados, machine learning, pesquisa quantitativa e automacao operacional. O sistema foi projetado para operar em camadas bem definidas, com forte separacao de responsabilidades entre ingestao, processamento analitico, modelagem, execucao simulada, pesquisa, governanca e infraestrutura de producao.
+
+O objetivo arquitetural do AlphaScope nao e simplesmente prever movimentos de mercado, mas construir um sistema capaz de:
+
+- aumentar a probabilidade de bons trades;
+- reduzir risco operacional e quantitativo;
+- descobrir oportunidades antes do mercado;
+- evoluir estrategias com controle e rastreabilidade;
+- manter auditabilidade, reproducibilidade e escalabilidade.
+
+
+2. PRINCIPIOS DE ARQUITETURA
+
+O projeto segue os seguintes principios:
+
+- Python como nucleo de orquestracao;
+- modularidade por dominio;
+- separacao entre pesquisa, operacao e governanca;
+- corretude temporal em dados e modelagem;
+- reprodutibilidade de datasets, modelos e experimentos;
+- observabilidade desde a base;
+- evolucao incremental, evitando complexidade desnecessaria;
+- validacao obrigatoria antes de qualquer avanço operacional.
+
+
+3. VISAO GERAL DA ARQUITETURA
+
+O AlphaScope esta organizado em tres macrodominios:
+
+3.1 CAMADA OPERACIONAL
+
+Responsavel por:
+
+- ingestao de dados;
+- feature engineering;
+- NLP;
+- machine learning;
+- ranking de ativos;
+- backtesting;
+- paper trading;
+- portfolio management;
+- dashboard;
+- API.
+
+3.2 CAMADA DE PESQUISA
+
+Responsavel por:
+
+- descoberta de alpha;
+- deteccao de regimes;
+- deteccao de anomalias;
+- mineracao de sinais;
+- geracao de estrategias;
+- tracking de experimentos;
+- benchmark;
+- sandbox de pesquisa;
+- analise cross-asset.
+
+3.3 CAMADA DE GOVERNANCA E PRODUCAO
+
+Responsavel por:
+
+- feature store;
+- data lineage;
+- dataset versioning;
+- model registry;
+- strategy lifecycle;
+- monitoramento de risco;
+- observabilidade;
+- seguranca;
+- persistencia relacional;
+- controle de evolucao de estrategias.
+
+
+4. ORGANIZACAO EM CAMADAS
+
+4.1 CAMADA DE INTERFACE
+
+Diretorios principais:
+
+- src/alphascope/cli.py
+- src/alphascope/api/
+- src/alphascope/dashboard/
+
+Responsabilidades:
+
+- entrada de comandos via CLI;
+- exposicao de endpoints REST;
+- visualizacao via dashboard local;
+- execucao e acompanhamento dos principais fluxos do sistema.
+
+Principais canais de saida:
+
+- terminal;
+- API externa;
+- dashboard Streamlit;
+- arquivos de relatorio;
+- logs.
+
+
+4.2 CAMADA DE ORQUESTRACAO
+
+Diretorios principais:
+
+- src/alphascope/automation/
+- src/alphascope/config/
+- src/alphascope/core/
+- src/alphascope/utils/
+
+Responsabilidades:
+
+- coordenar execucao de pipelines;
+- agendar tarefas;
+- centralizar configuracoes;
+- unificar chamadas entre modulos;
+- garantir integracao entre dominios.
+
+Principais componentes:
+
+- pipeline automatico;
+- scheduler;
+- configuracoes de ambiente;
+- helpers utilitarios.
+
+
+4.3 CAMADA DE INGESTAO
+
+Diretorio principal:
+
+- src/alphascope/ingestion/
+
+Responsabilidades:
+
+- coletar candles e dados de mercado;
+- coletar noticias;
+- coletar ativos em tendencia;
+- normalizar dados de entrada;
+- persistir dados brutos.
+
+Fontes previstas:
+
+- Binance API;
+- CoinGecko API;
+- NewsAPI;
+- GDELT;
+- fontes futuras.
+
+
+4.4 CAMADA DE STORAGE E PERSISTENCIA
+
+Diretorios principais:
+
+- src/alphascope/storage/
+- src/alphascope/infrastructure/
+- sql/
+
+Responsabilidades:
+
+- persistencia relacional principal;
+- migrations;
+- acesso a PostgreSQL;
+- acesso a Redis;
+- queries analiticas e views;
+- armazenamento de artefatos processados.
+
+Backends previstos:
+
+- PostgreSQL como banco principal;
+- DuckDB para analise local;
+- arquivos em data/processed para artefatos e compatibilidade operacional.
+
+
+4.5 CAMADA DE GOVERNANCA DE DADOS
+
+Diretorio principal:
+
+- src/alphascope/data_management/
+
+Responsabilidades:
+
+- versionar datasets;
+- catalogar datasets disponiveis;
+- registrar lineage de dados;
+- validar integridade e consistencia;
+- detectar problemas de schema, missing data, outliers e drift.
+
+Mecanismos implementados:
+
+- dataset versioning com dataset_hash;
+- data catalog;
+- lineage tracking;
+- data validation.
+
+
+4.6 CAMADA DE FEATURE ENGINEERING
+
+Diretorio principal:
+
+- src/alphascope/features/
+
+Responsabilidades:
+
+- calcular indicadores tecnicos;
+- derivar features para treino e inferencia;
+- estruturar dados de mercado em formato modelavel.
+
+Exemplos de features:
+
+- RSI;
+- MACD;
+- MACD signal;
+- SMA;
+- Bollinger Bands;
+- volatilidade;
+- retorno percentual;
+- momentum;
+- volume relativo.
+
+
+4.7 CAMADA DE NLP
+
+Diretorio principal:
+
+- src/alphascope/nlp/
+
+Responsabilidades:
+
+- classificar sentimento;
+- classificar topicos;
+- identificar ativos citados;
+- medir relevancia e contexto de noticias.
+
+Saidas principais:
+
+- sentiment_score;
+- topic_label;
+- asset_mentions;
+- sinais textuais para ranking e pesquisa.
+
+
+4.8 FEATURE STORE
+
+Diretorio principal:
+
+- src/alphascope/feature_store/
+
+Responsabilidades:
+
+- registrar features disponiveis;
+- manter metadata e ownership;
+- versionar features;
+- armazenar features calculadas;
+- servir features para treino, inferencia e pesquisa.
+
+Estruturas principais:
+
+- feature_registry;
+- feature_metadata;
+- feature_versions.
+
+
+4.9 CAMADA DE MODELAGEM
+
+Diretorio principal:
+
+- src/alphascope/models/
+
+Responsabilidades:
+
+- construcao de dataset para modelos;
+- definicao de targets;
+- treino;
+- avaliacao;
+- inferencia;
+- ranking;
+- registry de modelos.
+
+Modelos atualmente suportados:
+
+- LogisticRegression;
+- RandomForestClassifier;
+- GradientBoostingClassifier.
+
+Extensoes previstas:
+
+- XGBoost;
+- LightGBM;
+- deep learning em PyTorch.
+
+
+4.10 CAMADA DE OTIMIZACAO
+
+Diretorio principal:
+
+- src/alphascope/optimization/
+
+Responsabilidades:
+
+- walk-forward validation;
+- search de hiperparametros;
+- otimizacao de estrategias;
+- otimizacao bayesiana;
+- comparacao entre combinacoes de parametros.
+
+Estruturas principais:
+
+- hyperparameter_search;
+- strategy_optimizer;
+- walk_forward;
+- bayesian_optimizer.
+
+
+4.11 CAMADA DE BACKTEST E BENCHMARK
+
+Diretorios principais:
+
+- src/alphascope/backtest/
+- src/alphascope/benchmark/
+
+Responsabilidades:
+
+- simular estrategias em historico;
+- medir win rate, drawdown, profit factor, sharpe e retorno acumulado;
+- comparar estrategias, modelos e janelas;
+- servir de gate de validacao antes de paper trading.
+
+
+4.12 CAMADA DE EXECUCAO SIMULADA
+
+Diretorios principais:
+
+- src/alphascope/trading/
+- src/alphascope/execution/
+
+Responsabilidades:
+
+- executar paper trading;
+- gerenciar posicoes;
+- atualizar saldo;
+- controlar ordens;
+- aplicar regras de execucao;
+- preparar a camada de live execution futura.
+
+Importante:
+
+- live trading permanece desativado por seguranca;
+- paper trading e obrigatorio como etapa intermediaria.
+
+
+4.13 CAMADA DE PORTFOLIO E RISCO
+
+Diretorios principais:
+
+- src/alphascope/portfolio/
+- src/alphascope/monitoring/risk_monitor.py
+
+Responsabilidades:
+
+- gerenciar portfolio multiativos;
+- alocacao de capital;
+- monitorar exposicao;
+- medir drawdown;
+- monitorar concentracao;
+- manter limites por trade e por carteira.
+
+Metodos previstos:
+
+- equal weight;
+- risk parity;
+- Kelly fraction.
+
+
+4.14 CAMADA DE PESQUISA QUANTITATIVA
+
+Diretorios principais:
+
+- src/alphascope/research/
+- src/alphascope/discovery/
+- src/alphascope/analysis/
+- src/alphascope/meta_learning/
+- src/alphascope/experiments/
+- src/alphascope/sandbox/
+
+Responsabilidades:
+
+- descobrir padroes de mercado;
+- detectar regimes e anomalias;
+- testar sinais;
+- gerar estrategias candidatas;
+- formular hipoteses;
+- comparar ativos e setores;
+- executar experimentos controlados;
+- servir de ambiente de exploracao quantitativa continua.
+
+
+4.15 CAMADA DE EVOLUCAO DE ESTRATEGIAS
+
+Diretorios principais:
+
+- src/alphascope/evolution/
+- src/alphascope/research_continuous/
+- src/alphascope/governance/
+- src/alphascope/marketplace/
+
+Responsabilidades:
+
+- manter registry de estrategias;
+- controlar versionamento e lineage;
+- avaliar saude e degradacao;
+- medir robustez temporal;
+- acompanhar performance por regime;
+- gerar adaptacoes candidatas;
+- promover, rebaixar ou arquivar estrategias;
+- registrar todas as decisoes;
+- disponibilizar marketplace interno de estrategias.
+
+Estados de estrategia:
+
+- research_only;
+- candidate;
+- paper_trading;
+- production_ready;
+- deprecated;
+- archived.
+
+
+4.16 CAMADA DE RELATORIOS
+
+Diretorio principal:
+
+- src/alphascope/reports/
+
+Responsabilidades:
+
+- gerar relatorios de alpha discovery;
+- gerar relatorios de estrategias;
+- gerar relatorios de lifecycle;
+- gerar relatorios de degradacao;
+- gerar relatorios de promocao;
+- consolidar evidencias para analise humana.
+
+
+4.17 CAMADA DE OBSERVABILIDADE
+
+Diretorio principal:
+
+- src/alphascope/monitoring/
+
+Responsabilidades:
+
+- metricas estruturadas;
+- tracing;
+- healthcheck;
+- logs;
+- monitoramento de risco;
+- suporte a Prometheus e Grafana.
+
+Metricas importantes:
+
+- latencia do pipeline;
+- tempo de inferencia;
+- tempo de ranking;
+- tempo de backtest;
+- numero de sinais;
+- numero de trades;
+- drawdown;
+- exposicao;
+- concentracao;
+- erros de sistema.
+
+
+5. FLUXOS ARQUITETURAIS
+
+5.1 FLUXO OPERACIONAL
+
+Data Sources
+-> Ingestion
+-> Storage
+-> Feature Engineering / NLP
+-> Feature Store / Dataset
+-> ML / Ranking
+-> Backtest / Paper Trading
+-> Portfolio / Risk
+-> Dashboard / API / Alerts
+
+5.2 FLUXO DE PESQUISA
+
+Dataset
+-> Regime Detection
+-> Anomaly Detection
+-> Signal Mining
+-> Strategy Generation
+-> Alpha Ranking
+-> Experiment Tracking
+-> Reports
+
+5.3 FLUXO DE EVOLUCAO
+
+Strategy Registry
+-> Rolling Evaluation
+-> Robustness Monitoring
+-> Regime Performance Tracking
+-> Degradation Detection
+-> Adaptation Engine
+-> Promotion Engine
+-> Decision Log
+-> Lifecycle Update
+
+
+6. MULTILANGUAGE ARCHITECTURE
+
+O AlphaScope foi expandido para suportar linguagens especializadas sem substituir Python como nucleo.
+
+Python
+
+Responsavel por:
+
+- orquestracao;
+- CLI;
+- API;
+- dashboard;
+- ML;
+- NLP;
+- automacao;
+- integracao entre modulos.
+
+Rust
+
+Diretorio:
+
+- src/alphascope/rust/
+
+Responsavel por:
+
+- aceleracao computacional;
+- kernels numericos;
+- feature engineering pesado;
+- anomaly detection;
+- signal mining;
+- futura aceleracao de backtest.
+
+Go
+
+Diretorio:
+
+- services/go/
+
+Responsavel por:
+
+- servicos auxiliares;
+- ingestion workers;
+- exchange workers;
+- scheduler workers.
+
+Julia
+
+Diretorio:
+
+- research/julia/
+
+Responsavel por:
+
+- simulacoes quantitativas;
+- Monte Carlo;
+- simulacao de portfolio;
+- modelagem de risco.
+
+R
+
+Diretorio:
+
+- research/R/
+
+Responsavel por:
+
+- validacao estatistica;
+- analise de regimes;
+- testes de significancia;
+- relatorios estatisticos exploratorios.
+
+SQL
+
+Diretorio:
+
+- sql/
+
+Responsavel por:
+
+- analytics;
+- feature queries;
+- views operacionais e de monitoramento.
+
+Scripts
+
+Diretorio:
+
+- scripts/
+
+Responsavel por:
+
+- setup;
+- startup;
+- backup;
+- automacao operacional.
+
+Frontend
+
+Diretorio:
+
+- frontend/
+
+Responsavel por:
+
+- base futura para frontend profissional em TypeScript/Next.js.
+
+
+7. ORGANIZACAO DE DIRETORIOS
+
+Estrutura principal:
+
+alphascope/
+  src/
+    alphascope/
+      ingestion/
+      features/
+      nlp/
+      models/
+      backtest/
+      trading/
+      portfolio/
+      execution/
+      automation/
+      dashboard/
+      api/
+      storage/
+      infrastructure/
+      feature_store/
+      data_management/
+      discovery/
+      research/
+      experiments/
+      analysis/
+      meta_learning/
+      evolution/
+      research_continuous/
+      governance/
+      reports/
+      monitoring/
+      benchmark/
+      sandbox/
+      marketplace/
+      security/
+      rust/
+  services/go/
+  research/julia/
+  research/R/
+  sql/
+  scripts/
+  frontend/
+  data/
+  docs/
+  logs/
+  deployment/
+  tests/
+
+
+8. PERSISTENCIA E ARTEFATOS
+
+8.1 PERSISTENCIA RELACIONAL
+
+Entidades armazenadas:
+
+- dados de mercado;
+- noticias;
+- features;
+- previsoes;
+- rankings;
+- portfolio;
+- trades;
+- backtests;
+- experimentos;
+- discovery results;
+- lifecycle de estrategias;
+- benchmark;
+- lineage;
+- model registry;
+- dataset versions.
+
+8.2 ARTEFATOS FILE-BASED
+
+Diretorios principais:
+
+- data/processed/models/
+- data/processed/predictions/
+- data/processed/rankings/
+- data/processed/backtests/
+- data/processed/paper_trades/
+- data/processed/discovery/
+- data/processed/research/
+- data/processed/experiments/
+- data/processed/evolution/
+- data/processed/lifecycle/
+- data/processed/governance/
+- data/processed/feature_store/
+- data/processed/datasets/
+- data/processed/lineage/
+- data/processed/benchmarks/
+- data/processed/sandbox/
+- data/processed/marketplace/
+- data/processed/reports/
+
+
+9. SEGURANCA E CONTROLE
+
+O sistema inclui:
+
+- API key authentication;
+- bearer token helper;
+- rate limiting;
+- execution guards;
+- retry engine;
+- reconciliation;
+- logs estruturados;
+- decisao humana preservada para producao real.
+
+Importante:
+
+- nenhuma automacao de promocao autoriza execucao real por si so;
+- live trading continua sujeito a aprovacao explicita.
+
+
+10. TESTES E QUALIDADE
+
+O projeto possui cobertura em:
+
+- ingestao;
+- NLP;
+- features;
+- targets;
+- treino e avaliacao;
+- ranking;
+- backtest;
+- trading;
+- scheduler;
+- dashboard services;
+- portfolio e risco;
+- optimization;
+- feature store;
+- data management;
+- discovery;
+- evolution;
+- governance;
+- benchmark;
+- sandbox;
+- marketplace;
+- multilanguage scaffold.
+
+Tambem existe estrutura de CI em:
+
+- .github/workflows/ci.yml
+
+
+11. CONCLUSAO
+
+O AlphaScope hoje possui arquitetura suficiente para ser tratado como uma plataforma quantitativa profissional em evolucao, com clara separacao entre:
+
+- operacao;
+- pesquisa;
+- governanca;
+- producao.
+
+Essa estrutura permite que o sistema cresca sem perder organizacao, reprodutibilidade e rastreabilidade. O desenho atual e adequado para:
+
+- inteligencia de mercado;
+- simulacao e validacao;
+- evolucao controlada de estrategias;
+- integracao futura com operacao real em ambiente altamente supervisionado.

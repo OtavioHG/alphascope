@@ -1,0 +1,13 @@
+{
+  "risk": {
+    "profile": "moderate",
+    "max_trades_per_day": 6,
+    "same_symbol_cooldown_minutes": 240
+  },
+  "entry": {
+    "min_entry_score": 0.74
+  },
+  "exit": {
+    "max_trade_hours": 72
+  }
+}

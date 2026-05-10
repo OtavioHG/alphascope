@@ -1,0 +1,380 @@
+RELATORIO DA FASE 6 DO PROJETO ALPHASCOPE
+
+1. VISÃO GERAL
+
+A FASE 6 do AlphaScope teve como objetivo evoluir a plataforma para um nível quantitativo mais avançado, incorporando gestão de portfólio multiativos, métodos de alocação de capital, controles de risco em nível de portfólio, validação walk-forward, otimização de estratégias, camada de execução real preparada, API REST e estrutura inicial de deploy.
+
+Com essa fase, o AlphaScope deixa de ser apenas uma plataforma de sinais, automação e visualização, passando a oferecer elementos centrais de uma quant platform com foco em extensibilidade, robustez e preparação para operação mais sofisticada.
+
+2. OBJETIVOS DA FASE 6
+
+Os principais objetivos desta fase foram:
+
+- permitir operação com múltiplos ativos simultaneamente;
+- adicionar métodos quantitativos de alocação de capital;
+- reforçar o controle de risco;
+- validar modelos em modo walk-forward;
+- otimizar parâmetros de estratégia;
+- preparar a execução real via exchange;
+- expor dados por API externa;
+- estruturar o deploy da plataforma.
+
+3. MÓDULOS IMPLEMENTADOS
+
+Foram criados os seguintes módulos principais:
+
+src/alphascope/portfolio/
+- allocation.py
+- portfolio_engine.py
+- risk_management.py
+
+src/alphascope/optimization/
+- hyperparameter_search.py
+- strategy_optimizer.py
+- walk_forward.py
+
+src/alphascope/execution/
+- exchange_adapter.py
+- live_execution.py
+- order_manager.py
+
+src/alphascope/api/
+- api_server.py
+- routes/
+  - ranking.py
+  - portfolio.py
+  - trades.py
+  - signals.py
+
+deployment/
+- docker/
+- config/
+- monitoring/
+
+4. PORTFÓLIO MULTIATIVOS
+
+Foi implementado um engine de portfólio capaz de:
+
+- gerenciar múltiplos ativos ao mesmo tempo;
+- controlar capital disponível;
+- abrir posições em diferentes símbolos;
+- calcular exposição do portfólio;
+- acompanhar retorno total;
+- calcular valor consolidado do portfólio.
+
+Campos principais do snapshot do portfólio:
+
+- total_equity
+- available_capital
+- open_positions
+- portfolio_value
+- portfolio_return
+- portfolio_exposure
+- realized_pnl
+
+Esse motor foi projetado para servir como base de decisões mais sofisticadas nas próximas fases.
+
+5. ALOCAÇÃO DE CAPITAL
+
+Foi implementado o módulo allocation.py com três métodos principais:
+
+5.1. Equal Weight
+
+Distribui o capital igualmente entre os ativos selecionados.
+
+5.2. Risk Parity
+
+Distribui o capital considerando a volatilidade de cada ativo, dando mais peso aos ativos com menor risco relativo.
+
+5.3. Kelly Fraction
+
+Utiliza probabilidade e payoff esperado para definir o tamanho da posição, limitado por uma fração máxima para evitar excesso de agressividade.
+
+Também foi criada uma AllocationEngine para abstrair a escolha do método.
+
+6. GESTÃO DE RISCO
+
+Foi implementado o módulo risk_management.py com controles quantitativos para:
+
+- risco máximo por trade;
+- risco máximo de exposição do portfólio;
+- limite de drawdown;
+- limite de perda por ativo;
+- limite de posições simultâneas.
+
+Parâmetros principais:
+
+- MAX_RISK_PER_TRADE
+- MAX_PORTFOLIO_EXPOSURE
+- MAX_DRAWDOWN
+- MAX_OPEN_POSITIONS
+
+O RiskManager avalia se uma nova posição pode ser aberta antes de aceitar a alocação.
+
+7. WALK-FORWARD VALIDATION
+
+Foi implementado o módulo walk_forward.py para permitir validação temporal mais robusta.
+
+Fluxo implementado:
+
+1. carregar dataset;
+2. gerar target temporal;
+3. selecionar features;
+4. treinar o modelo em uma janela;
+5. testar na janela seguinte;
+6. avançar a janela;
+7. repetir o processo;
+8. salvar métricas por janela.
+
+Esse processo reforça a confiabilidade da avaliação ao respeitar a ordem temporal e evitar contaminação entre treino e teste.
+
+8. OTIMIZAÇÃO DE ESTRATÉGIA
+
+Foram criados dois módulos de otimização:
+
+8.1. hyperparameter_search.py
+
+Responsável por testar combinações de parâmetros de modelos em modo:
+
+- grid search;
+- random search.
+
+8.2. strategy_optimizer.py
+
+Responsável por testar combinações de estratégia envolvendo:
+
+- horizonte do target;
+- threshold de retorno;
+- threshold de BUY;
+- threshold de SELL.
+
+O fluxo utiliza:
+
+- treino de modelo;
+- geração de previsões;
+- conversão em sinais;
+- backtest;
+- avaliação por métricas como Sharpe Ratio.
+
+Os resultados são salvos em:
+
+- data/processed/optimization/
+
+9. EXECUÇÃO REAL PREPARADA
+
+Foi implementada uma camada de execução real preparada, porém segura por padrão.
+
+Arquivos:
+
+- exchange_adapter.py
+- order_manager.py
+- live_execution.py
+
+Capacidades preparadas:
+
+- envio de ordem;
+- cancelamento de ordem;
+- consulta de posições;
+- consulta de saldo;
+- suporte a tipos de ordem market e limit.
+
+Integração prevista com:
+
+- Binance
+- Bybit
+- OKX
+
+Importante:
+
+A execução real permanece desativada por padrão por meio de:
+
+ENABLE_LIVE_TRADING=False
+
+Isso garante que nenhuma operação real seja disparada acidentalmente nesta fase.
+
+10. ORDER MANAGER
+
+O módulo order_manager.py foi implementado para:
+
+- validar ordens;
+- checar parâmetros mínimos;
+- chamar a exchange adapter;
+- persistir histórico de ordens em arquivo;
+- registrar a execução para rastreabilidade.
+
+Essa camada separa claramente:
+
+- lógica de validação;
+- integração com exchange;
+- persistência do histórico.
+
+11. API REST
+
+Foi criada uma API REST usando FastAPI.
+
+Arquivo principal:
+
+- api_server.py
+
+Rotas implementadas:
+
+- GET /ranking
+- GET /portfolio
+- GET /trades
+- GET /signals
+- POST /pipeline/run
+
+Essa API permite que o AlphaScope seja integrado futuramente com:
+
+- dashboards externos;
+- bots;
+- frontends web;
+- sistemas auxiliares.
+
+12. DEPLOY
+
+Foi criada a estrutura inicial de deploy em:
+
+deployment/docker/
+deployment/config/
+deployment/monitoring/
+
+Arquivos criados:
+
+- Dockerfile
+- docker-compose.yml
+- prometheus.yml
+- grafana_readme.txt
+- app.env.example
+
+Serviços previstos no docker-compose:
+
+- alphascope-core
+- alphascope-dashboard
+- postgres
+- redis
+
+Essa estrutura é um scaffold inicial e não representa ainda um stack de produção completo, mas já acelera a evolução futura.
+
+13. CONFIGURAÇÃO
+
+O arquivo .env.example foi atualizado com novos parâmetros da FASE 6, incluindo:
+
+- ENABLE_LIVE_TRADING=False
+- EXCHANGE_NAME=binance
+- API_HOST=0.0.0.0
+- API_PORT=8000
+- ALLOCATION_METHOD=equal_weight
+- MAX_PORTFOLIO_EXPOSURE=0.30
+- MAX_DRAWDOWN=0.15
+
+Também foram atualizados:
+
+- settings.py
+- pyproject.toml
+
+Dependências adicionadas:
+
+- fastapi
+- uvicorn
+
+14. CLI
+
+Foram adicionados os seguintes comandos:
+
+- alphascope run-api
+- alphascope run-live-trading
+- alphascope run-walkforward
+- alphascope optimize-strategy
+- alphascope deploy-docker
+
+Funções:
+
+- run-api
+  sobe a API FastAPI
+
+- run-live-trading
+  prepara a camada de execução real, apenas se explicitamente habilitada
+
+- run-walkforward
+  executa validação walk-forward
+
+- optimize-strategy
+  roda a otimização de estratégia com backtest
+
+- deploy-docker
+  sobe a stack via Docker Compose
+
+15. TESTES
+
+Foram adicionados testes para:
+
+- métodos de alocação;
+- risk manager;
+- portfolio engine;
+- walk-forward validation;
+- strategy optimizer;
+- API endpoints.
+
+Arquivos principais:
+
+- tests/unit/test_phase6_quant.py
+- tests/integration/test_phase6_api.py
+
+Resultado da validação executada:
+
+- 19 testes passaram com sucesso;
+- 1 teste foi pulado.
+
+O teste pulado foi o da API, porque no ambiente atual o pacote FastAPI ainda não estava instalado no venv em uso no momento da execução.
+
+16. QUALIDADES DA FASE 6
+
+Os principais pontos fortes desta fase são:
+
+- introdução de lógica real de portfólio quantitativo;
+- estrutura clara para alocação e risco;
+- reforço da validação temporal com walk-forward;
+- otimização automatizada de estratégia;
+- API pronta para integração;
+- execução real preparada mas protegida por configuração;
+- base pronta para deploy e observabilidade futura.
+
+17. LIMITAÇÕES ATUAIS
+
+Apesar dos avanços, a V1 da FASE 6 ainda possui limitações:
+
+- execução real ainda não deve ser usada em produção;
+- order manager ainda é inicial e não contempla cenários complexos;
+- deploy é um scaffold, não um ambiente de produção completo;
+- persistência segue majoritariamente file-backed;
+- otimização ainda é simples e pode evoluir para busca bayesiana ou tuning distribuído;
+- API ainda não possui autenticação nem rate limit.
+
+18. CONCLUSÃO
+
+A FASE 6 consolidou o AlphaScope como uma plataforma quantitativa significativamente mais madura.
+
+Com essa entrega, o projeto agora possui:
+
+- ingestão e enriquecimento de dados;
+- modelos preditivos;
+- ranking e backtest;
+- automação contínua;
+- paper trading;
+- dashboard analítico;
+- gestão de portfólio multiativos;
+- mecanismos de risco;
+- validação walk-forward;
+- otimização de estratégias;
+- API externa;
+- preparação para deploy e execução real controlada.
+
+Essa fase posiciona o AlphaScope como uma base sólida para evoluções futuras, como:
+
+- execução real efetiva com controles de produção;
+- autenticação e segurança na API;
+- persistência relacional completa;
+- monitoramento mais avançado;
+- estratégias multiativos mais sofisticadas;
+- otimização distribuída e contínua.

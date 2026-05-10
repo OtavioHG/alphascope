@@ -1,0 +1,287 @@
+ALPHASCOPE
+DIAGRAMA ASCII DA ARQUITETURA COMPLETA
+
+
++----------------------------------------------------------------------------------+
+|                                  1. INTERFACES                                   |
+|----------------------------------------------------------------------------------|
+|  CLI                          API REST                        DASHBOARD           |
+|  src/alphascope/cli.py        src/alphascope/api/            src/alphascope/     |
+|                                                              dashboard/          |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                              2. ORQUESTRACAO CENTRAL                             |
+|----------------------------------------------------------------------------------|
+|  Configuracao, coordenacao e fluxos principais                                   |
+|                                                                                  |
+|  src/alphascope/config/                                                          |
+|  src/alphascope/core/                                                            |
+|  src/alphascope/utils/                                                           |
+|  src/alphascope/automation/                                                      |
+|    - pipeline.py                                                                 |
+|    - scheduler.py                                                                |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                                3. INTAKE DE DADOS                                |
+|----------------------------------------------------------------------------------|
+|  Coleta de mercado e noticias                                                    |
+|                                                                                  |
+|  src/alphascope/ingestion/                                                       |
+|    - market ingestion                                                            |
+|    - news ingestion                                                              |
+|    - trending assets                                                             |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                           4. ENRIQUECIMENTO ANALITICO                            |
+|----------------------------------------------------------------------------------|
+|  Transformacao de dados brutos em dados analiticos                               |
+|                                                                                  |
+|  src/alphascope/features/                                                        |
+|  src/alphascope/nlp/                                                             |
+|                                                                                  |
+|  Inclui:                                                                         |
+|  - indicadores tecnicos                                                          |
+|  - sentimento de noticias                                                        |
+|  - topicos                                                                       |
+|  - dataset consolidado                                                           |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                            5. GOVERNANCA DE DADOS                                |
+|----------------------------------------------------------------------------------|
+|  Versionamento, catalogo, lineage, validacao e feature store                     |
+|                                                                                  |
+|  src/alphascope/data_management/                                                 |
+|    - dataset_versioning.py                                                       |
+|    - data_catalog.py                                                             |
+|    - data_lineage.py                                                             |
+|    - validation.py                                                               |
+|                                                                                  |
+|  src/alphascope/feature_store/                                                   |
+|    - feature_registry.py                                                         |
+|    - feature_store.py                                                            |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                           6. MODELAGEM E OTIMIZACAO                              |
+|----------------------------------------------------------------------------------|
+|  Machine Learning, targets, treino, inferencia, registry e tuning               |
+|                                                                                  |
+|  src/alphascope/models/                                                          |
+|    - dataset.py                                                                  |
+|    - targets.py                                                                  |
+|    - train.py                                                                    |
+|    - evaluate.py                                                                 |
+|    - predict.py                                                                  |
+|    - ranking.py                                                                  |
+|    - registry.py                                                                 |
+|    - model_registry_store.py                                                     |
+|                                                                                  |
+|  src/alphascope/optimization/                                                    |
+|    - walk_forward.py                                                             |
+|    - strategy_optimizer.py                                                       |
+|    - hyperparameter_search.py                                                    |
+|    - bayesian_optimizer.py                                                       |
++----------------------------------------------------------------------------------+
+                                        |
+                        +---------------+----------------+
+                        |                                |
+                        v                                v
++------------------------------------------------+   +--------------------------------------------+
+|           7A. BACKTEST E BENCHMARK             |   |      7B. RANKING E DECISAO QUANT          |
+|------------------------------------------------|   |--------------------------------------------|
+|  src/alphascope/backtest/                      |   |  ranking de ativos                         |
+|  src/alphascope/benchmark/                     |   |  sinais e comparacoes                      |
+|                                                |   |  modelos e estrategias                     |
++------------------------------------------------+   +--------------------------------------------+
+                        |                                |
+                        +---------------+----------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                         8. EXECUCAO SIMULADA E PORTFOLIO                         |
+|----------------------------------------------------------------------------------|
+|  Trading, paper broker, portfolio, execution layer e risco operacional           |
+|                                                                                  |
+|  src/alphascope/trading/                                                         |
+|    - paper_broker.py                                                             |
+|    - portfolio.py                                                                |
+|    - execution_engine.py                                                         |
+|                                                                                  |
+|  src/alphascope/portfolio/                                                       |
+|    - portfolio_engine.py                                                         |
+|    - allocation.py                                                               |
+|    - risk_management.py                                                          |
+|                                                                                  |
+|  src/alphascope/execution/                                                       |
+|    - live_execution.py                                                           |
+|    - order_manager.py                                                            |
+|    - execution_guard.py                                                          |
+|    - reconciliation.py                                                           |
+|    - retry_engine.py                                                             |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                           9. PESQUISA E DISCOVERY ENGINE                         |
+|----------------------------------------------------------------------------------|
+|  Camada separada da operacao para descoberta de alpha                            |
+|                                                                                  |
+|  src/alphascope/research/                                                        |
+|  src/alphascope/discovery/                                                       |
+|  src/alphascope/analysis/                                                        |
+|  src/alphascope/meta_learning/                                                   |
+|  src/alphascope/experiments/                                                     |
+|  src/alphascope/sandbox/                                                         |
+|                                                                                  |
+|  Inclui:                                                                         |
+|  - regime detection                                                              |
+|  - anomaly detection                                                             |
+|  - signal mining                                                                 |
+|  - strategy generation                                                           |
+|  - experiment tracking                                                           |
+|  - hypothesis engine                                                             |
+|  - cross-asset analysis                                                          |
+|  - meta-learning                                                                 |
+|  - research sandbox                                                              |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                      10. EVOLUCAO DE ESTRATEGIAS E GOVERNANCA                    |
+|----------------------------------------------------------------------------------|
+|  Registro, versionamento, robustez, degradacao e promocao controlada             |
+|                                                                                  |
+|  src/alphascope/evolution/                                                       |
+|    - strategy_registry.py                                                        |
+|    - strategy_versioning.py                                                      |
+|    - strategy_lifecycle.py                                                       |
+|    - degradation_detector.py                                                     |
+|    - adaptation_engine.py                                                        |
+|    - promotion_engine.py                                                         |
+|    - retraining_manager.py                                                       |
+|                                                                                  |
+|  src/alphascope/research_continuous/                                             |
+|    - continuous_research.py                                                      |
+|    - rolling_evaluator.py                                                        |
+|    - robustness_monitor.py                                                       |
+|    - regime_performance_tracker.py                                               |
+|                                                                                  |
+|  src/alphascope/governance/                                                      |
+|    - strategy_policy.py                                                          |
+|    - approval_rules.py                                                           |
+|    - decision_log.py                                                             |
+|                                                                                  |
+|  src/alphascope/marketplace/                                                     |
+|    - strategy_marketplace.py                                                     |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                      11. PERSISTENCIA, STORAGE E INFRAESTRUTURA                  |
+|----------------------------------------------------------------------------------|
+|  Banco, migrations, Redis, Postgres, SQL analitico e artefatos                   |
+|                                                                                  |
+|  src/alphascope/storage/                                                         |
+|    - database.py                                                                 |
+|    - migrations/                                                                 |
+|    - models/                                                                     |
+|                                                                                  |
+|  src/alphascope/infrastructure/                                                  |
+|    - postgres_client.py                                                          |
+|    - redis_client.py                                                             |
+|                                                                                  |
+|  sql/                                                                            |
+|    - views/                                                                      |
+|    - analytics/                                                                  |
+|    - feature_queries/                                                            |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                         12. OBSERVABILIDADE E MONITORAMENTO                      |
+|----------------------------------------------------------------------------------|
+|  Logs, metricas, tracing, healthcheck e risco                                    |
+|                                                                                  |
+|  src/alphascope/monitoring/                                                      |
+|    - metrics.py                                                                  |
+|    - tracing.py                                                                  |
+|    - healthcheck.py                                                              |
+|    - risk_monitor.py                                                             |
+|                                                                                  |
+|  logs/                                                                           |
+|  data/processed/reports/                                                         |
++----------------------------------------------------------------------------------+
+                                        |
+                                        v
++----------------------------------------------------------------------------------+
+|                     13. CAMADA MULTILINGUAGEM ESPECIALIZADA                      |
+|----------------------------------------------------------------------------------|
+|  Python continua como nucleo. Camadas extras especializadas apoiam o sistema.    |
+|                                                                                  |
+|  Rust         -> src/alphascope/rust/                                            |
+|  Go           -> services/go/                                                    |
+|  Julia        -> research/julia/                                                 |
+|  R            -> research/R/                                                     |
+|  SQL          -> sql/                                                            |
+|  Scripts      -> scripts/                                                        |
+|  Frontend     -> frontend/                                                       |
+|                                                                                  |
+|  Interoperabilidade:                                                             |
+|  - Python <-> Rust via PyO3/maturin                                              |
+|  - Python <-> Go via REST                                                        |
+|  - Julia/R consumindo datasets e banco                                           |
+|  - SQL para analytics e views                                                    |
++----------------------------------------------------------------------------------+
+
+
+FLUXO PRINCIPAL DO SISTEMA
+
+    INTAKE DE DADOS
+           |
+           v
+    ENRIQUECIMENTO ANALITICO
+           |
+           v
+    GOVERNANCA DE DADOS
+           |
+           v
+    MODELAGEM E OTIMIZACAO
+           |
+           v
+    BACKTEST / RANKING / DECISAO
+           |
+           v
+    EXECUCAO SIMULADA / PORTFOLIO
+           |
+           v
+    PESQUISA E DISCOVERY
+           |
+           v
+    EVOLUCAO E GOVERNANCA
+           |
+           v
+    PERSISTENCIA / MONITORAMENTO / INTERFACES
+
+
+RESUMO DE DOMINIOS
+
+  OPERACAO
+    -> ingestao, features, ML, ranking, automacao, trading, dashboard, API
+
+  PESQUISA
+    -> discovery, experimentos, meta-learning, benchmark, sandbox
+
+  GOVERNANCA
+    -> lifecycle, robustez, degradacao, promocao, registry, decision log
+
+  PRODUCAO
+    -> storage, feature store, observabilidade, eventos, seguranca, infraestrutura

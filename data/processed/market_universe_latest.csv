@@ -1,0 +1,3 @@
+symbol,quote_asset,volume_24h,last_price,rank_volume,selected
+BTCUSDT,USDT,15000000,70000,1,True
+ETHUSDT,USDT,12000000,3500,2,True

@@ -1,0 +1,7 @@
+experiment_id,strategy_id,feature_set,target_definition,train_period,test_period,metrics,promotion_status
+exp_001,oversold_reversal,"['volatility', 'macd', 'macd_signal']","{'future_horizon': 4, 'return_threshold': 0.015}",historical,forward_slice,"{'signal_count': 3, 'regime_coverage': 4}",research_only
+exp_002,oversold_reversal,"['volatility', 'macd', 'macd_signal', 'pct_return', 'bb_lower']","{'future_horizon': 4, 'return_threshold': 0.015}",historical,forward_slice,"{'signal_count': 3, 'regime_coverage': 4}",research_only
+exp_003,breakout_followthrough,"['volatility', 'macd', 'macd_signal']","{'future_horizon': 6, 'return_threshold': 0.02}",historical,forward_slice,"{'signal_count': 3, 'regime_coverage': 4}",research_only
+exp_004,breakout_followthrough,"['volatility', 'macd', 'macd_signal', 'pct_return', 'bb_lower']","{'future_horizon': 6, 'return_threshold': 0.02}",historical,forward_slice,"{'signal_count': 3, 'regime_coverage': 4}",research_only
+exp_005,trend_confirmation,"['volatility', 'macd', 'macd_signal']","{'future_horizon': 8, 'return_threshold': 0.025}",historical,forward_slice,"{'signal_count': 3, 'regime_coverage': 4}",research_only
+exp_006,trend_confirmation,"['volatility', 'macd', 'macd_signal', 'pct_return', 'bb_lower']","{'future_horizon': 8, 'return_threshold': 0.025}",historical,forward_slice,"{'signal_count': 3, 'regime_coverage': 4}",research_only

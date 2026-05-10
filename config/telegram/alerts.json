@@ -1,0 +1,6 @@
+{
+  "telegram": {
+    "enabled": true,
+    "top_n_summary": 5
+  }
+}

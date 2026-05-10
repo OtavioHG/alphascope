@@ -1,0 +1,12 @@
+{
+  "risk": {
+    "profile": "sniper",
+    "max_trades_per_day": 3,
+    "same_symbol_cooldown_minutes": 360
+  },
+  "entry": {
+    "min_entry_score": 0.84,
+    "min_breakout_strength": 0.02,
+    "min_momentum_score": 0.70
+  }
+}

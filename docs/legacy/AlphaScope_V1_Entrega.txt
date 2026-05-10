@@ -1,0 +1,2061 @@
+﻿AlphaScope V1 - Entrega Consolidada
+Gerado em: 2026-03-22 20:44:36
+
+====================================================================================================
+ARQUIVO: src/alphascope/__init__.py
+====================================================================================================
+
+"""AlphaScope V1 package."""
+
+__all__ = ["__version__"]
+
+__version__ = "0.1.0"
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/cli.py
+====================================================================================================
+
+"""Command-line interface for AlphaScope V1."""
+
+from __future__ import annotations
+
+import argparse
+import json
+
+from alphascope.config.settings import settings
+from alphascope.core.logger import configure_logging
+from alphascope.core.pipeline import AlphaScopePipeline
+from alphascope.storage.database import init_database
+from alphascope.utils.io import parse_csv_argument
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="alphascope", description="AlphaScope V1 CLI")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    def add_market_args(target: argparse.ArgumentParser) -> None:
+        target.add_argument("--symbols", default=",".join(settings.symbol_list))
+        target.add_argument("--interval", default=settings.default_interval)
+        target.add_argument("--limit", type=int, default=settings.default_candle_limit)
+
+    add_market_args(subparsers.add_parser("ingest-market", help="Fetch and store Binance candles"))
+    features_parser = subparsers.add_parser("build-features", help="Compute and store technical features")
+    features_parser.add_argument("--symbols", default=",".join(settings.symbol_list))
+    features_parser.add_argument("--interval", default=settings.default_interval)
+    rank_parser = subparsers.add_parser("rank-assets", help="Generate and store asset ranking")
+    rank_parser.add_argument("--symbols", default=",".join(settings.symbol_list))
+    rank_parser.add_argument("--interval", default=settings.default_interval)
+    backtest_parser = subparsers.add_parser("backtest", help="Run simple backtest")
+    backtest_parser.add_argument("--symbol", default=settings.symbol_list[0])
+    backtest_parser.add_argument("--interval", default=settings.default_interval)
+    paper_parser = subparsers.add_parser("paper-trade", help="Run paper trading cycle")
+    paper_parser.add_argument("--symbols", default=",".join(settings.symbol_list))
+    paper_parser.add_argument("--interval", default=settings.default_interval)
+    add_market_args(subparsers.add_parser("run-pipeline", help="Run end-to-end pipeline"))
+    return parser
+
+
+def main() -> None:
+    configure_logging()
+    init_database()
+    args = build_parser().parse_args()
+    pipeline = AlphaScopePipeline()
+
+    if args.command == "ingest-market":
+        result = pipeline.ingest_market(parse_csv_argument(args.symbols), [args.interval], args.limit)
+    elif args.command == "build-features":
+        result = pipeline.build_features(parse_csv_argument(args.symbols), args.interval).to_dict(orient="records")
+    elif args.command == "rank-assets":
+        result = pipeline.rank_assets(parse_csv_argument(args.symbols), args.interval).to_dict(orient="records")
+    elif args.command == "backtest":
+        backtest_result = pipeline.backtest(args.symbol.upper(), args.interval)
+        result = {
+            "metrics": backtest_result["metrics"],
+            "trade_count": len(backtest_result["trades"]),
+        }
+    elif args.command == "paper-trade":
+        result = pipeline.paper_trade(parse_csv_argument(args.symbols), args.interval)
+    elif args.command == "run-pipeline":
+        result = pipeline.run_pipeline(parse_csv_argument(args.symbols), args.interval, args.limit)
+    else:
+        raise ValueError(f"Unsupported command: {args.command}")
+
+    print(json.dumps(result, indent=2, default=str))
+
+
+if __name__ == "__main__":
+    main()
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/config/__init__.py
+====================================================================================================
+
+"""Configuration package exports."""
+
+from alphascope.config.constants import BINANCE_KLINES_ENDPOINT, DEFAULT_CANDLE_LIMIT, DEFAULT_INTERVAL, DEFAULT_SYMBOLS
+from alphascope.config.settings import Settings, settings
+
+__all__ = [
+    "BINANCE_KLINES_ENDPOINT",
+    "DEFAULT_CANDLE_LIMIT",
+    "DEFAULT_INTERVAL",
+    "DEFAULT_SYMBOLS",
+    "Settings",
+    "settings",
+]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/config/constants.py
+====================================================================================================
+
+"""Project-wide constants for AlphaScope V1."""
+
+from __future__ import annotations
+
+DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+DEFAULT_INTERVAL = "1h"
+DEFAULT_CANDLE_LIMIT = 500
+
+BINANCE_KLINES_ENDPOINT = "/api/v3/klines"
+BINANCE_ALLOWED_INTERVALS = {
+    "1m",
+    "3m",
+    "5m",
+    "15m",
+    "30m",
+    "1h",
+    "2h",
+    "4h",
+    "6h",
+    "8h",
+    "12h",
+    "1d",
+}
+
+MARKET_CANDLE_COLUMNS = [
+    "timestamp",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "symbol",
+    "interval",
+]
+
+TECHNICAL_FEATURE_COLUMNS = [
+    "timestamp",
+    "symbol",
+    "interval",
+    "close",
+    "return_pct",
+    "ma_short",
+    "ma_long",
+    "rsi",
+    "volatility",
+    "avg_volume",
+    "relative_volume",
+    "momentum",
+    "trend_strength",
+]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/config/settings.py
+====================================================================================================
+
+"""Environment-backed settings for AlphaScope V1."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+from alphascope.config.constants import DEFAULT_CANDLE_LIMIT, DEFAULT_INTERVAL, DEFAULT_SYMBOLS
+
+
+def _load_env_file(path: Path) -> None:
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+def _get_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _get_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    return int(value) if value is not None else default
+
+
+def _get_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    return float(value) if value is not None else default
+
+
+ROOT_DIR = Path(__file__).resolve().parents[3]
+_load_env_file(ROOT_DIR / ".env")
+
+
+@dataclass(frozen=True)
+class Settings:
+    app_name: str = os.getenv("APP_NAME", "AlphaScope")
+    environment: str = os.getenv("APP_ENV", "development")
+    log_level: str = os.getenv("LOG_LEVEL", "INFO").upper()
+    data_dir: Path = ROOT_DIR / os.getenv("DATA_DIR", "data")
+    log_dir: Path = ROOT_DIR / os.getenv("LOG_DIR", "logs")
+    sqlite_path: Path = ROOT_DIR / os.getenv("SQLITE_PATH", "data/alphascope.db")
+    binance_base_url: str = os.getenv("BINANCE_BASE_URL", "https://api.binance.com")
+    request_timeout: int = _get_int("REQUEST_TIMEOUT", 10)
+    request_retries: int = _get_int("REQUEST_RETRIES", 3)
+    default_interval: str = os.getenv("DEFAULT_INTERVAL", DEFAULT_INTERVAL)
+    default_candle_limit: int = _get_int("DEFAULT_CANDLE_LIMIT", DEFAULT_CANDLE_LIMIT)
+    symbols: str = os.getenv("SYMBOLS", ",".join(DEFAULT_SYMBOLS))
+    short_window: int = _get_int("SHORT_WINDOW", 9)
+    long_window: int = _get_int("LONG_WINDOW", 21)
+    rsi_window: int = _get_int("RSI_WINDOW", 14)
+    volatility_window: int = _get_int("VOLATILITY_WINDOW", 20)
+    volume_window: int = _get_int("VOLUME_WINDOW", 20)
+    momentum_window: int = _get_int("MOMENTUM_WINDOW", 5)
+    backtest_initial_cash: float = _get_float("BACKTEST_INITIAL_CASH", 10_000.0)
+    backtest_fee_rate: float = _get_float("BACKTEST_FEE_RATE", 0.001)
+    paper_initial_cash: float = _get_float("PAPER_INITIAL_CASH", 10_000.0)
+    paper_max_positions: int = _get_int("PAPER_MAX_POSITIONS", 5)
+    paper_position_size: float = _get_float("PAPER_POSITION_SIZE", 0.2)
+    paper_fee_rate: float = _get_float("PAPER_FEE_RATE", 0.001)
+    rank_buy_threshold: float = _get_float("RANK_BUY_THRESHOLD", 0.6)
+    rank_sell_threshold: float = _get_float("RANK_SELL_THRESHOLD", 0.4)
+    echo_sql: bool = _get_bool("ECHO_SQL", False)
+
+    @property
+    def database_url(self) -> str:
+        return f"sqlite:///{self.sqlite_path.as_posix()}"
+
+    @property
+    def symbol_list(self) -> list[str]:
+        return [symbol.strip().upper() for symbol in self.symbols.split(",") if symbol.strip()]
+
+
+settings = Settings()
+settings.data_dir.mkdir(parents=True, exist_ok=True)
+settings.log_dir.mkdir(parents=True, exist_ok=True)
+settings.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/core/__init__.py
+====================================================================================================
+
+"""Core package exports for AlphaScope V1."""
+
+from alphascope.core.exceptions import AlphaScopeError, BacktestError, ExecutionError, FeatureError, IngestionError, RankingError, StorageError
+from alphascope.core.logger import configure_logging, get_logger
+
+__all__ = [
+    "AlphaScopeError",
+    "BacktestError",
+    "ExecutionError",
+    "FeatureError",
+    "IngestionError",
+    "RankingError",
+    "StorageError",
+    "configure_logging",
+    "get_logger",
+]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/core/exceptions.py
+====================================================================================================
+
+"""Custom exceptions for AlphaScope V1."""
+
+from __future__ import annotations
+
+
+class AlphaScopeError(Exception):
+    """Base project exception."""
+
+
+class IngestionError(AlphaScopeError):
+    """Raised when market ingestion fails."""
+
+
+class StorageError(AlphaScopeError):
+    """Raised when persistence operations fail."""
+
+
+class FeatureError(AlphaScopeError):
+    """Raised when feature generation fails."""
+
+
+class RankingError(AlphaScopeError):
+    """Raised when ranking generation fails."""
+
+
+class BacktestError(AlphaScopeError):
+    """Raised when backtesting fails."""
+
+
+class ExecutionError(AlphaScopeError):
+    """Raised when paper trading execution fails."""
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/core/logger.py
+====================================================================================================
+
+"""Centralized logging setup."""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
+from alphascope.config.settings import settings
+
+
+def configure_logging() -> None:
+    """Configure root logging once for CLI and pipelines."""
+    root_logger = logging.getLogger()
+    if root_logger.handlers:
+        return
+
+    log_file = Path(settings.log_dir) / "alphascope.log"
+    formatter = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+
+    root_logger.setLevel(settings.log_level)
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Return a module logger after base configuration."""
+    configure_logging()
+    return logging.getLogger(name)
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/core/pipeline.py
+====================================================================================================
+
+"""End-to-end AlphaScope V1 pipeline."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from alphascope.backtest.engine import BacktestEngine
+from alphascope.backtest.strategy import ThresholdStrategy
+from alphascope.config.settings import settings
+from alphascope.core.logger import get_logger
+from alphascope.execution.paper_trader import PaperTrader
+from alphascope.features.feature_pipeline import FeaturePipeline
+from alphascope.ingestion.market_ingestor import MarketIngestor
+from alphascope.ranking.ranker import AssetRanker
+from alphascope.ranking.scorer import score_timeseries
+from alphascope.storage.repositories import StorageRepository
+
+logger = get_logger(__name__)
+
+
+class AlphaScopePipeline:
+    """Orchestrates ingestion, feature generation, ranking, backtesting and paper trading."""
+
+    def __init__(self, repository: StorageRepository | None = None) -> None:
+        self.repository = repository or StorageRepository()
+        self.ingestor = MarketIngestor(repository=self.repository)
+        self.feature_pipeline = FeaturePipeline(repository=self.repository)
+        self.ranker = AssetRanker()
+
+    def ingest_market(self, symbols: list[str], intervals: list[str], limit: int) -> list[dict[str, object]]:
+        results = self.ingestor.ingest(symbols=symbols, intervals=intervals, limit=limit)
+        return [{"symbol": result.symbol, "interval": result.interval, "rows": result.rows} for result in results]
+
+    def build_features(self, symbols: list[str], interval: str) -> pd.DataFrame:
+        frames = [self.feature_pipeline.build_for_symbol(symbol=symbol, interval=interval) for symbol in symbols]
+        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+    def rank_assets(self, symbols: list[str], interval: str) -> pd.DataFrame:
+        latest_rows = []
+        for symbol in symbols:
+            features = self.repository.get_features(symbol=symbol, interval=interval)
+            if features.empty:
+                features = self.feature_pipeline.build_for_symbol(symbol=symbol, interval=interval)
+            if not features.empty:
+                latest_rows.append(features.sort_values("timestamp").iloc[[-1]])
+        cross_section = pd.concat(latest_rows, ignore_index=True) if latest_rows else pd.DataFrame()
+        ranking = self.ranker.rank(cross_section)
+        self.repository.save_ranking(ranking, interval=interval)
+        return ranking
+
+    def backtest(self, symbol: str, interval: str) -> dict[str, pd.DataFrame | dict[str, float]]:
+        candles = self.repository.get_candles(symbol=symbol, interval=interval)
+        features = self.repository.get_features(symbol=symbol, interval=interval)
+        if features.empty:
+            features = self.feature_pipeline.build_for_symbol(symbol=symbol, interval=interval)
+        scored = score_timeseries(features)
+        dataset = candles.merge(scored[["timestamp", "symbol", "score"]], on=["timestamp", "symbol"], how="inner")
+        signal_frame = ThresholdStrategy(
+            buy_threshold=settings.rank_buy_threshold,
+            sell_threshold=settings.rank_sell_threshold,
+        ).generate_signals(dataset)
+        return BacktestEngine(
+            initial_cash=settings.backtest_initial_cash,
+            fee_rate=settings.backtest_fee_rate,
+        ).run(signal_frame)
+
+    def paper_trade(self, symbols: list[str], interval: str) -> dict[str, object]:
+        ranking = self.rank_assets(symbols=symbols, interval=interval)
+        latest_prices: dict[str, float] = {}
+        for symbol in symbols:
+            candles = self.repository.get_candles(symbol=symbol, interval=interval)
+            if not candles.empty:
+                latest_prices[symbol] = float(candles.sort_values("timestamp").iloc[-1]["close"])
+        return PaperTrader(repository=self.repository).run_cycle(ranking=ranking, latest_prices=latest_prices)
+
+    def run_pipeline(self, symbols: list[str], interval: str, limit: int) -> dict[str, object]:
+        ingestion = self.ingest_market(symbols=symbols, intervals=[interval], limit=limit)
+        features = self.build_features(symbols=symbols, interval=interval)
+        ranking = self.rank_assets(symbols=symbols, interval=interval)
+        trading = self.paper_trade(symbols=symbols, interval=interval)
+        logger.info("Pipeline run completed for %s", symbols)
+        return {
+            "ingestion": ingestion,
+            "feature_rows": int(len(features)),
+            "ranking_rows": int(len(ranking)),
+            "paper_trades": len(trading["trades"]),
+        }
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/ingestion/__init__.py
+====================================================================================================
+
+"""Ingestion package exports."""
+
+from alphascope.ingestion.binance_client import BinanceClient
+from alphascope.ingestion.market_ingestor import MarketIngestor
+from alphascope.ingestion.schemas import IngestionRequest, IngestionResult
+
+__all__ = ["BinanceClient", "IngestionRequest", "IngestionResult", "MarketIngestor"]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/ingestion/schemas.py
+====================================================================================================
+
+"""Data contracts for market ingestion."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import pandas as pd
+
+
+@dataclass(frozen=True)
+class IngestionRequest:
+    symbol: str
+    interval: str
+    limit: int
+
+
+@dataclass(frozen=True)
+class IngestionResult:
+    symbol: str
+    interval: str
+    rows: int
+    frame: pd.DataFrame
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/ingestion/binance_client.py
+====================================================================================================
+
+"""HTTP client for Binance public market data."""
+
+from __future__ import annotations
+
+from time import sleep
+
+import pandas as pd
+import requests
+
+from alphascope.config.constants import BINANCE_ALLOWED_INTERVALS, BINANCE_KLINES_ENDPOINT, MARKET_CANDLE_COLUMNS
+from alphascope.config.settings import settings
+from alphascope.core.exceptions import IngestionError
+from alphascope.core.logger import get_logger
+from alphascope.utils.time import from_milliseconds
+
+logger = get_logger(__name__)
+
+
+class BinanceClient:
+    """Minimal Binance REST client with timeout and retry handling."""
+
+    def __init__(
+        self,
+        base_url: str | None = None,
+        timeout: int | None = None,
+        max_retries: int | None = None,
+        session: requests.Session | None = None,
+    ) -> None:
+        self.base_url = (base_url or settings.binance_base_url).rstrip("/")
+        self.timeout = timeout or settings.request_timeout
+        self.max_retries = max_retries or settings.request_retries
+        self.session = session or requests.Session()
+
+    def get_klines(self, symbol: str, interval: str, limit: int) -> pd.DataFrame:
+        if interval not in BINANCE_ALLOWED_INTERVALS:
+            raise IngestionError(f"Unsupported Binance interval: {interval}")
+
+        params = {"symbol": symbol.upper(), "interval": interval, "limit": int(limit)}
+        last_error: Exception | None = None
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                response = self.session.get(
+                    f"{self.base_url}{BINANCE_KLINES_ENDPOINT}",
+                    params=params,
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, list):
+                    raise IngestionError(f"Unexpected Binance payload: {payload}")
+                frame = self._normalize_klines(payload, symbol=symbol.upper(), interval=interval)
+                logger.info("Fetched %s candles for %s %s", len(frame), symbol.upper(), interval)
+                return frame
+            except (requests.RequestException, ValueError, IngestionError) as exc:
+                last_error = exc
+                logger.warning(
+                    "Binance request failed for %s %s on attempt %s/%s: %s",
+                    symbol.upper(),
+                    interval,
+                    attempt,
+                    self.max_retries,
+                    exc,
+                )
+                if attempt < self.max_retries:
+                    sleep(0.5 * attempt)
+
+        raise IngestionError(f"Failed to fetch Binance klines for {symbol} {interval}") from last_error
+
+    @staticmethod
+    def _normalize_klines(payload: list[list[object]], symbol: str, interval: str) -> pd.DataFrame:
+        rows: list[dict[str, object]] = []
+        for item in payload:
+            rows.append(
+                {
+                    "timestamp": from_milliseconds(int(item[0])),
+                    "open": float(item[1]),
+                    "high": float(item[2]),
+                    "low": float(item[3]),
+                    "close": float(item[4]),
+                    "volume": float(item[5]),
+                    "symbol": symbol,
+                    "interval": interval,
+                }
+            )
+        frame = pd.DataFrame(rows, columns=MARKET_CANDLE_COLUMNS)
+        if not frame.empty:
+            frame = frame.sort_values("timestamp").reset_index(drop=True)
+        return frame
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/ingestion/market_ingestor.py
+====================================================================================================
+
+"""Market ingestion orchestration."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from alphascope.core.logger import get_logger
+from alphascope.ingestion.binance_client import BinanceClient
+from alphascope.ingestion.schemas import IngestionRequest, IngestionResult
+from alphascope.storage.repositories import StorageRepository
+
+logger = get_logger(__name__)
+
+
+class MarketIngestor:
+    """Fetch and persist market candles for one or many assets."""
+
+    def __init__(self, client: BinanceClient | None = None, repository: StorageRepository | None = None) -> None:
+        self.client = client or BinanceClient()
+        self.repository = repository or StorageRepository()
+
+    def ingest(self, symbols: list[str], intervals: list[str], limit: int) -> list[IngestionResult]:
+        results: list[IngestionResult] = []
+        for symbol in symbols:
+            for interval in intervals:
+                request = IngestionRequest(symbol=symbol, interval=interval, limit=limit)
+                frame = self.client.get_klines(request.symbol, request.interval, request.limit)
+                inserted = self.repository.save_candles(frame)
+                logger.info("Persisted %s candle rows for %s %s", inserted, symbol, interval)
+                results.append(IngestionResult(symbol=symbol, interval=interval, rows=inserted, frame=frame))
+        return results
+
+    def load(self, symbol: str, interval: str, limit: int | None = None) -> pd.DataFrame:
+        return self.repository.get_candles(symbol=symbol, interval=interval, limit=limit)
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/storage/__init__.py
+====================================================================================================
+
+"""Storage package exports for AlphaScope V1."""
+
+from alphascope.storage.database import Base, SessionLocal, engine, init_database, session_scope
+from alphascope.storage.repositories import StorageRepository
+
+__all__ = ["Base", "SessionLocal", "StorageRepository", "engine", "init_database", "session_scope"]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/storage/database.py
+====================================================================================================
+
+"""Database bootstrap and session management."""
+
+from __future__ import annotations
+
+from contextlib import contextmanager
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+
+from alphascope.config.settings import settings
+
+
+class Base(DeclarativeBase):
+    """Declarative base for all ORM models."""
+
+
+engine = create_engine(settings.database_url, future=True, echo=settings.echo_sql)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+
+@contextmanager
+def session_scope() -> Session:
+    """Provide a transactional session scope."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def init_database() -> None:
+    """Create database tables if they do not exist."""
+    from alphascope.storage.models import AssetRanking, MarketCandle, PaperTrade, PortfolioSnapshot, TechnicalFeature
+
+    _ = (MarketCandle, TechnicalFeature, AssetRanking, PaperTrade, PortfolioSnapshot)
+    Base.metadata.create_all(bind=engine)
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/storage/models.py
+====================================================================================================
+
+"""ORM models for AlphaScope V1 storage."""
+
+from __future__ import annotations
+
+from sqlalchemy import DateTime, Float, Integer, String, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
+
+from alphascope.storage.database import Base
+
+
+class MarketCandle(Base):
+    __tablename__ = "market_candles"
+    __table_args__ = (UniqueConstraint("timestamp", "symbol", "interval", name="uq_market_candle"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    interval: Mapped[str] = mapped_column(String(10), index=True)
+    open: Mapped[float] = mapped_column(Float)
+    high: Mapped[float] = mapped_column(Float)
+    low: Mapped[float] = mapped_column(Float)
+    close: Mapped[float] = mapped_column(Float)
+    volume: Mapped[float] = mapped_column(Float)
+
+
+class TechnicalFeature(Base):
+    __tablename__ = "technical_features"
+    __table_args__ = (UniqueConstraint("timestamp", "symbol", "interval", name="uq_technical_feature"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    interval: Mapped[str] = mapped_column(String(10), index=True)
+    close: Mapped[float] = mapped_column(Float)
+    return_pct: Mapped[float] = mapped_column(Float)
+    ma_short: Mapped[float] = mapped_column(Float)
+    ma_long: Mapped[float] = mapped_column(Float)
+    rsi: Mapped[float] = mapped_column(Float)
+    volatility: Mapped[float] = mapped_column(Float)
+    avg_volume: Mapped[float] = mapped_column(Float)
+    relative_volume: Mapped[float] = mapped_column(Float)
+    momentum: Mapped[float] = mapped_column(Float)
+    trend_strength: Mapped[float] = mapped_column(Float)
+
+
+class AssetRanking(Base):
+    __tablename__ = "asset_rankings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    interval: Mapped[str] = mapped_column(String(10), index=True)
+    score: Mapped[float] = mapped_column(Float)
+    rank: Mapped[int] = mapped_column(Integer)
+    momentum_component: Mapped[float] = mapped_column(Float)
+    volume_component: Mapped[float] = mapped_column(Float)
+    trend_component: Mapped[float] = mapped_column(Float)
+    rsi_component: Mapped[float] = mapped_column(Float)
+
+
+class PaperTrade(Base):
+    __tablename__ = "paper_trades"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    side: Mapped[str] = mapped_column(String(10))
+    quantity: Mapped[float] = mapped_column(Float)
+    price: Mapped[float] = mapped_column(Float)
+    fee: Mapped[float] = mapped_column(Float)
+    realized_pnl: Mapped[float] = mapped_column(Float, default=0.0)
+
+
+class PortfolioSnapshot(Base):
+    __tablename__ = "portfolio_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    cash: Mapped[float] = mapped_column(Float)
+    equity: Mapped[float] = mapped_column(Float)
+    realized_pnl: Mapped[float] = mapped_column(Float)
+    unrealized_pnl: Mapped[float] = mapped_column(Float)
+    positions_json: Mapped[str] = mapped_column(String)
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/storage/models/__init__.py
+====================================================================================================
+
+"""ORM models for AlphaScope V1 storage."""
+
+from __future__ import annotations
+
+from sqlalchemy import DateTime, Float, Integer, String, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
+
+from alphascope.storage.database import Base
+
+
+class MarketCandle(Base):
+    __tablename__ = "market_candles"
+    __table_args__ = (UniqueConstraint("timestamp", "symbol", "interval", name="uq_market_candle"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    interval: Mapped[str] = mapped_column(String(10), index=True)
+    open: Mapped[float] = mapped_column(Float)
+    high: Mapped[float] = mapped_column(Float)
+    low: Mapped[float] = mapped_column(Float)
+    close: Mapped[float] = mapped_column(Float)
+    volume: Mapped[float] = mapped_column(Float)
+
+
+class TechnicalFeature(Base):
+    __tablename__ = "technical_features"
+    __table_args__ = (UniqueConstraint("timestamp", "symbol", "interval", name="uq_technical_feature"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    interval: Mapped[str] = mapped_column(String(10), index=True)
+    close: Mapped[float] = mapped_column(Float)
+    return_pct: Mapped[float] = mapped_column(Float)
+    ma_short: Mapped[float] = mapped_column(Float)
+    ma_long: Mapped[float] = mapped_column(Float)
+    rsi: Mapped[float] = mapped_column(Float)
+    volatility: Mapped[float] = mapped_column(Float)
+    avg_volume: Mapped[float] = mapped_column(Float)
+    relative_volume: Mapped[float] = mapped_column(Float)
+    momentum: Mapped[float] = mapped_column(Float)
+    trend_strength: Mapped[float] = mapped_column(Float)
+
+
+class AssetRanking(Base):
+    __tablename__ = "asset_rankings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    interval: Mapped[str] = mapped_column(String(10), index=True)
+    score: Mapped[float] = mapped_column(Float)
+    rank: Mapped[int] = mapped_column(Integer)
+    momentum_component: Mapped[float] = mapped_column(Float)
+    volume_component: Mapped[float] = mapped_column(Float)
+    trend_component: Mapped[float] = mapped_column(Float)
+    rsi_component: Mapped[float] = mapped_column(Float)
+
+
+class PaperTrade(Base):
+    __tablename__ = "paper_trades"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+    side: Mapped[str] = mapped_column(String(10))
+    quantity: Mapped[float] = mapped_column(Float)
+    price: Mapped[float] = mapped_column(Float)
+    fee: Mapped[float] = mapped_column(Float)
+    realized_pnl: Mapped[float] = mapped_column(Float, default=0.0)
+
+
+class PortfolioSnapshot(Base):
+    __tablename__ = "portfolio_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[object] = mapped_column(DateTime(timezone=True), index=True)
+    cash: Mapped[float] = mapped_column(Float)
+    equity: Mapped[float] = mapped_column(Float)
+    realized_pnl: Mapped[float] = mapped_column(Float)
+    unrealized_pnl: Mapped[float] = mapped_column(Float)
+    positions_json: Mapped[str] = mapped_column(String)
+
+
+__all__ = ["AssetRanking", "MarketCandle", "PaperTrade", "PortfolioSnapshot", "TechnicalFeature"]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/storage/repositories.py
+====================================================================================================
+
+"""Repositories for persistence and retrieval."""
+
+from __future__ import annotations
+
+import json
+
+import pandas as pd
+from sqlalchemy import delete, select
+
+from alphascope.core.exceptions import StorageError
+from alphascope.storage.database import SessionLocal, session_scope
+from alphascope.storage.models import AssetRanking, MarketCandle, PaperTrade, PortfolioSnapshot, TechnicalFeature
+
+
+class StorageRepository:
+    """Persistence facade for AlphaScope datasets."""
+
+    def save_candles(self, candles: pd.DataFrame) -> int:
+        if candles.empty:
+            return 0
+        records = candles.to_dict(orient="records")
+        with session_scope() as session:
+            for record in records:
+                session.execute(
+                    delete(MarketCandle).where(
+                        MarketCandle.timestamp == record["timestamp"],
+                        MarketCandle.symbol == record["symbol"],
+                        MarketCandle.interval == record["interval"],
+                    )
+                )
+                session.add(MarketCandle(**record))
+        return len(records)
+
+    def get_candles(self, symbol: str, interval: str, limit: int | None = None) -> pd.DataFrame:
+        with SessionLocal() as session:
+            query = (
+                select(MarketCandle)
+                .where(MarketCandle.symbol == symbol, MarketCandle.interval == interval)
+                .order_by(MarketCandle.timestamp.asc())
+            )
+            rows = session.execute(query).scalars().all()
+        data = [self._to_dict(row) for row in rows]
+        frame = pd.DataFrame(data)
+        if frame.empty:
+            return frame
+        if limit is not None:
+            frame = frame.tail(limit)
+        return frame.reset_index(drop=True)
+
+    def save_features(self, features: pd.DataFrame) -> int:
+        if features.empty:
+            return 0
+        records = features.to_dict(orient="records")
+        with session_scope() as session:
+            for record in records:
+                session.execute(
+                    delete(TechnicalFeature).where(
+                        TechnicalFeature.timestamp == record["timestamp"],
+                        TechnicalFeature.symbol == record["symbol"],
+                        TechnicalFeature.interval == record["interval"],
+                    )
+                )
+                session.add(TechnicalFeature(**record))
+        return len(records)
+
+    def get_features(self, symbol: str, interval: str) -> pd.DataFrame:
+        with SessionLocal() as session:
+            query = (
+                select(TechnicalFeature)
+                .where(TechnicalFeature.symbol == symbol, TechnicalFeature.interval == interval)
+                .order_by(TechnicalFeature.timestamp.asc())
+            )
+            rows = session.execute(query).scalars().all()
+        return pd.DataFrame([self._to_dict(row) for row in rows])
+
+    def save_ranking(self, rankings: pd.DataFrame, interval: str) -> int:
+        if rankings.empty:
+            return 0
+        records = rankings.to_dict(orient="records")
+        timestamp = records[0]["timestamp"]
+        with session_scope() as session:
+            session.execute(delete(AssetRanking).where(AssetRanking.timestamp == timestamp, AssetRanking.interval == interval))
+            for record in records:
+                session.add(AssetRanking(interval=interval, **record))
+        return len(records)
+
+    def get_latest_ranking(self, interval: str) -> pd.DataFrame:
+        with SessionLocal() as session:
+            latest_timestamp = session.execute(
+                select(AssetRanking.timestamp).where(AssetRanking.interval == interval).order_by(AssetRanking.timestamp.desc())
+            ).scalars().first()
+            if latest_timestamp is None:
+                return pd.DataFrame()
+            rows = session.execute(
+                select(AssetRanking)
+                .where(AssetRanking.interval == interval, AssetRanking.timestamp == latest_timestamp)
+                .order_by(AssetRanking.rank.asc())
+            ).scalars().all()
+        return pd.DataFrame([self._to_dict(row) for row in rows])
+
+    def save_trades(self, trades: list[dict[str, object]]) -> int:
+        if not trades:
+            return 0
+        with session_scope() as session:
+            for trade in trades:
+                session.add(PaperTrade(**trade))
+        return len(trades)
+
+    def save_snapshot(self, snapshot: dict[str, object]) -> int:
+        with session_scope() as session:
+            payload = snapshot.copy()
+            payload["positions_json"] = json.dumps(payload["positions_json"])
+            session.add(PortfolioSnapshot(**payload))
+        return 1
+
+    def save_snapshots(self, snapshots: list[dict[str, object]]) -> int:
+        saved = 0
+        for snapshot in snapshots:
+            saved += self.save_snapshot(snapshot)
+        return saved
+
+    def get_latest_snapshot(self) -> dict[str, object] | None:
+        with SessionLocal() as session:
+            row = session.execute(
+                select(PortfolioSnapshot).order_by(PortfolioSnapshot.timestamp.desc())
+            ).scalars().first()
+        if row is None:
+            return None
+        payload = self._to_dict(row)
+        payload["positions_json"] = json.loads(str(payload["positions_json"]))
+        return payload
+
+    @staticmethod
+    def _to_dict(model: object) -> dict[str, object]:
+        if model is None:
+            raise StorageError("Cannot serialize empty model")
+        return {column.name: getattr(model, column.name) for column in model.__table__.columns}  # type: ignore[attr-defined]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/features/__init__.py
+====================================================================================================
+
+"""Feature package exports."""
+
+from alphascope.features.feature_pipeline import FeaturePipeline
+from alphascope.features.technical import compute_technical_features
+
+__all__ = ["FeaturePipeline", "compute_technical_features"]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/features/technical.py
+====================================================================================================
+
+"""Technical indicator calculations."""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+
+def compute_technical_features(
+    candles: pd.DataFrame,
+    short_window: int,
+    long_window: int,
+    rsi_window: int,
+    volatility_window: int,
+    volume_window: int,
+    momentum_window: int,
+) -> pd.DataFrame:
+    """Build lag-safe technical features from historical candles."""
+    if candles.empty:
+        return pd.DataFrame()
+
+    dataset = candles.sort_values(["symbol", "timestamp"]).reset_index(drop=True).copy()
+    grouped = dataset.groupby("symbol", group_keys=False)
+
+    dataset["return_pct"] = grouped["close"].pct_change()
+    dataset["ma_short"] = grouped["close"].transform(lambda s: s.rolling(window=short_window, min_periods=short_window).mean())
+    dataset["ma_long"] = grouped["close"].transform(lambda s: s.rolling(window=long_window, min_periods=long_window).mean())
+    dataset["volatility"] = grouped["return_pct"].transform(
+        lambda s: s.rolling(window=volatility_window, min_periods=volatility_window).std(ddof=0)
+    )
+    dataset["avg_volume"] = grouped["volume"].transform(
+        lambda s: s.rolling(window=volume_window, min_periods=volume_window).mean()
+    )
+    dataset["relative_volume"] = dataset["volume"] / dataset["avg_volume"]
+    dataset["momentum"] = grouped["close"].transform(lambda s: s / s.shift(momentum_window) - 1.0)
+    dataset["trend_strength"] = (dataset["ma_short"] / dataset["ma_long"]) - 1.0
+    dataset["rsi"] = grouped["close"].transform(lambda s: _compute_rsi(s, window=rsi_window))
+
+    columns = [
+        "timestamp",
+        "symbol",
+        "interval",
+        "close",
+        "return_pct",
+        "ma_short",
+        "ma_long",
+        "rsi",
+        "volatility",
+        "avg_volume",
+        "relative_volume",
+        "momentum",
+        "trend_strength",
+    ]
+    return dataset.loc[:, columns].dropna().reset_index(drop=True)
+
+
+def _compute_rsi(close: pd.Series, window: int) -> pd.Series:
+    delta = close.diff()
+    gain = delta.clip(lower=0.0)
+    loss = -delta.clip(upper=0.0)
+    avg_gain = gain.rolling(window=window, min_periods=window).mean()
+    avg_loss = loss.rolling(window=window, min_periods=window).mean()
+    rs = avg_gain / avg_loss.replace(0.0, np.nan)
+    rsi = 100.0 - (100.0 / (1.0 + rs))
+    return rsi.fillna(50.0)
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/features/feature_pipeline.py
+====================================================================================================
+
+"""Feature generation pipeline."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from alphascope.config.settings import settings
+from alphascope.core.exceptions import FeatureError
+from alphascope.core.logger import get_logger
+from alphascope.features.technical import compute_technical_features
+from alphascope.storage.repositories import StorageRepository
+
+logger = get_logger(__name__)
+
+
+class FeaturePipeline:
+    """Compute and persist technical features from stored candles."""
+
+    def __init__(self, repository: StorageRepository | None = None) -> None:
+        self.repository = repository or StorageRepository()
+
+    def build_for_symbol(self, symbol: str, interval: str) -> pd.DataFrame:
+        candles = self.repository.get_candles(symbol=symbol, interval=interval)
+        if candles.empty:
+            raise FeatureError(f"No candles available for {symbol} {interval}")
+
+        features = compute_technical_features(
+            candles=candles,
+            short_window=settings.short_window,
+            long_window=settings.long_window,
+            rsi_window=settings.rsi_window,
+            volatility_window=settings.volatility_window,
+            volume_window=settings.volume_window,
+            momentum_window=settings.momentum_window,
+        )
+        saved = self.repository.save_features(features)
+        logger.info("Saved %s feature rows for %s %s", saved, symbol, interval)
+        return features
+
+    @staticmethod
+    def latest_cross_section(features_by_symbol: list[pd.DataFrame]) -> pd.DataFrame:
+        rows = []
+        for frame in features_by_symbol:
+            if not frame.empty:
+                rows.append(frame.sort_values("timestamp").iloc[-1])
+        return pd.DataFrame(rows).reset_index(drop=True)
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/ranking/__init__.py
+====================================================================================================
+
+"""Ranking package exports."""
+
+from alphascope.ranking.ranker import AssetRanker
+from alphascope.ranking.scorer import score_assets, score_timeseries
+
+__all__ = ["AssetRanker", "score_assets", "score_timeseries"]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/ranking/scorer.py
+====================================================================================================
+
+"""Scoring logic for asset ranking."""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+
+def score_assets(features: pd.DataFrame) -> pd.DataFrame:
+    """Score the latest feature row per asset using cross-sectional normalization."""
+    if features.empty:
+        return pd.DataFrame()
+
+    dataset = features.copy().reset_index(drop=True)
+    dataset["momentum_component"] = _rank_to_unit(dataset["momentum"])
+    dataset["volume_component"] = _rank_to_unit(dataset["relative_volume"])
+    dataset["trend_component"] = _rank_to_unit(dataset["trend_strength"])
+    dataset["rsi_component"] = dataset["rsi"].apply(_score_rsi)
+    dataset["score"] = (
+        dataset["momentum_component"] * 0.35
+        + dataset["volume_component"] * 0.20
+        + dataset["trend_component"] * 0.25
+        + dataset["rsi_component"] * 0.20
+    )
+    return dataset
+
+
+def score_timeseries(features: pd.DataFrame) -> pd.DataFrame:
+    """Score a historical feature frame row by row for backtesting."""
+    if features.empty:
+        return pd.DataFrame()
+
+    dataset = features.copy()
+    dataset["momentum_component"] = dataset["momentum"].apply(lambda value: _clip_unit((float(value) + 0.1) / 0.2))
+    dataset["volume_component"] = dataset["relative_volume"].apply(lambda value: _clip_unit(float(value) / 2.0))
+    dataset["trend_component"] = dataset["trend_strength"].apply(lambda value: _clip_unit((float(value) + 0.05) / 0.10))
+    dataset["rsi_component"] = dataset["rsi"].apply(_score_rsi)
+    dataset["score"] = (
+        dataset["momentum_component"] * 0.35
+        + dataset["volume_component"] * 0.20
+        + dataset["trend_component"] * 0.25
+        + dataset["rsi_component"] * 0.20
+    )
+    return dataset
+
+
+def _rank_to_unit(series: pd.Series) -> pd.Series:
+    if series.nunique(dropna=False) <= 1:
+        return pd.Series(0.5, index=series.index, dtype=float)
+    return series.rank(method="average", pct=True)
+
+
+def _score_rsi(value: float) -> float:
+    distance = abs(float(value) - 55.0)
+    return float(np.clip(1.0 - (distance / 55.0), 0.0, 1.0))
+
+
+def _clip_unit(value: float) -> float:
+    return float(np.clip(value, 0.0, 1.0))
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/ranking/ranker.py
+====================================================================================================
+
+"""Ranking pipeline for assets."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from alphascope.core.exceptions import RankingError
+from alphascope.ranking.scorer import score_assets
+
+
+class AssetRanker:
+    """Generate a sorted asset ranking from latest technical features."""
+
+    def rank(self, features: pd.DataFrame) -> pd.DataFrame:
+        if features.empty:
+            raise RankingError("Cannot rank empty features")
+        scored = score_assets(features)
+        ranked = scored.sort_values(["score", "momentum"], ascending=[False, False]).reset_index(drop=True)
+        ranked["rank"] = range(1, len(ranked) + 1)
+        columns = [
+            "timestamp",
+            "symbol",
+            "score",
+            "rank",
+            "momentum_component",
+            "volume_component",
+            "trend_component",
+            "rsi_component",
+        ]
+        return ranked.loc[:, columns]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/backtest/strategy.py
+====================================================================================================
+
+"""Simple score-driven backtest strategy."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+
+class ThresholdStrategy:
+    """Emit BUY and SELL signals from ranking score thresholds."""
+
+    def __init__(self, buy_threshold: float, sell_threshold: float) -> None:
+        self.buy_threshold = buy_threshold
+        self.sell_threshold = sell_threshold
+
+    def generate_signals(self, frame: pd.DataFrame) -> pd.DataFrame:
+        dataset = frame.sort_values("timestamp").reset_index(drop=True).copy()
+        signal = []
+        in_position = False
+        for row in dataset.itertuples(index=False):
+            if not in_position and row.score >= self.buy_threshold:
+                signal.append("BUY")
+                in_position = True
+            elif in_position and row.score <= self.sell_threshold:
+                signal.append("SELL")
+                in_position = False
+            else:
+                signal.append("HOLD")
+        dataset["signal"] = signal
+        return dataset
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/backtest/metrics.py
+====================================================================================================
+
+"""Backtest metrics."""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+
+def compute_backtest_metrics(
+    equity_curve: pd.DataFrame,
+    trades: pd.DataFrame,
+    initial_cash: float,
+) -> dict[str, float]:
+    if equity_curve.empty:
+        return {
+            "cumulative_return": 0.0,
+            "win_rate": 0.0,
+            "max_drawdown": 0.0,
+            "profit_factor": 0.0,
+            "trade_count": 0.0,
+        }
+
+    realized = trades.loc[trades["side"] == "SELL", "realized_pnl"] if not trades.empty else pd.Series(dtype=float)
+    gross_profit = realized[realized > 0].sum()
+    gross_loss = -realized[realized < 0].sum()
+    equity = equity_curve["equity"].astype(float)
+    drawdown = (equity / equity.cummax()) - 1.0
+
+    return {
+        "cumulative_return": float((equity.iloc[-1] / initial_cash) - 1.0),
+        "win_rate": float((realized > 0).mean()) if not realized.empty else 0.0,
+        "max_drawdown": float(drawdown.min()),
+        "profit_factor": float(gross_profit / gross_loss) if gross_loss > 0 else float(np.inf if gross_profit > 0 else 0.0),
+        "trade_count": float(len(realized)),
+    }
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/backtest/engine.py
+====================================================================================================
+
+"""Backtest engine for AlphaScope V1."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from alphascope.backtest.metrics import compute_backtest_metrics
+from alphascope.core.exceptions import BacktestError
+
+
+class BacktestEngine:
+    """Run a single-asset long-only backtest using next-bar execution."""
+
+    def __init__(self, initial_cash: float, fee_rate: float) -> None:
+        self.initial_cash = initial_cash
+        self.fee_rate = fee_rate
+
+    def run(self, signal_frame: pd.DataFrame) -> dict[str, pd.DataFrame | dict[str, float]]:
+        if signal_frame.empty:
+            raise BacktestError("Signal frame is empty")
+
+        dataset = signal_frame.sort_values("timestamp").reset_index(drop=True).copy()
+        dataset["next_open"] = dataset["open"].shift(-1)
+
+        cash = self.initial_cash
+        quantity = 0.0
+        entry_cost = 0.0
+        trades: list[dict[str, object]] = []
+        equity_rows: list[dict[str, object]] = []
+
+        for row in dataset.itertuples(index=False):
+            execution_price = float(row.next_open) if pd.notna(row.next_open) else float(row.close)
+            close_price = float(row.close)
+
+            if row.signal == "BUY" and quantity == 0.0:
+                trade_fee = cash * self.fee_rate
+                investable_cash = cash - trade_fee
+                quantity = investable_cash / execution_price if execution_price > 0 else 0.0
+                entry_cost = cash
+                cash = 0.0
+                trades.append(
+                    {
+                        "timestamp": row.timestamp,
+                        "symbol": row.symbol,
+                        "side": "BUY",
+                        "price": execution_price,
+                        "quantity": quantity,
+                        "fee": trade_fee,
+                        "realized_pnl": 0.0,
+                    }
+                )
+            elif row.signal == "SELL" and quantity > 0.0:
+                gross_value = quantity * execution_price
+                trade_fee = gross_value * self.fee_rate
+                cash = gross_value - trade_fee
+                realized_pnl = cash - entry_cost
+                trades.append(
+                    {
+                        "timestamp": row.timestamp,
+                        "symbol": row.symbol,
+                        "side": "SELL",
+                        "price": execution_price,
+                        "quantity": quantity,
+                        "fee": trade_fee,
+                        "realized_pnl": realized_pnl,
+                    }
+                )
+                quantity = 0.0
+                entry_cost = 0.0
+
+            equity_rows.append(
+                {
+                    "timestamp": row.timestamp,
+                    "symbol": row.symbol,
+                    "signal": row.signal,
+                    "equity": cash + (quantity * close_price),
+                    "cash": cash,
+                    "quantity": quantity,
+                    "close": close_price,
+                }
+            )
+
+        if quantity > 0.0:
+            last_row = dataset.iloc[-1]
+            gross_value = quantity * float(last_row["close"])
+            trade_fee = gross_value * self.fee_rate
+            cash = gross_value - trade_fee
+            trades.append(
+                {
+                    "timestamp": last_row["timestamp"],
+                    "symbol": last_row["symbol"],
+                    "side": "SELL",
+                    "price": float(last_row["close"]),
+                    "quantity": quantity,
+                    "fee": trade_fee,
+                    "realized_pnl": cash - entry_cost,
+                }
+            )
+            equity_rows[-1]["equity"] = cash
+            equity_rows[-1]["cash"] = cash
+            equity_rows[-1]["quantity"] = 0.0
+
+        trades_df = pd.DataFrame(trades)
+        equity_df = pd.DataFrame(equity_rows)
+        metrics = compute_backtest_metrics(equity_df, trades_df, self.initial_cash)
+        return {"metrics": metrics, "trades": trades_df, "equity_curve": equity_df}
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/execution/portfolio.py
+====================================================================================================
+
+"""Portfolio state for paper trading."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class Position:
+    symbol: str
+    quantity: float
+    average_price: float
+    market_price: float
+
+    @property
+    def market_value(self) -> float:
+        return self.quantity * self.market_price
+
+    @property
+    def unrealized_pnl(self) -> float:
+        return (self.market_price - self.average_price) * self.quantity
+
+
+@dataclass
+class Portfolio:
+    cash: float
+    realized_pnl: float = 0.0
+    positions: dict[str, Position] = field(default_factory=dict)
+
+    def equity(self) -> float:
+        return self.cash + sum(position.market_value for position in self.positions.values())
+
+    def unrealized_pnl(self) -> float:
+        return sum(position.unrealized_pnl for position in self.positions.values())
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/execution/paper_trader.py
+====================================================================================================
+
+"""Paper trading engine."""
+
+from __future__ import annotations
+
+from dataclasses import asdict
+
+import pandas as pd
+
+from alphascope.config.settings import settings
+from alphascope.core.logger import get_logger
+from alphascope.execution.portfolio import Portfolio, Position
+from alphascope.storage.repositories import StorageRepository
+from alphascope.utils.time import utc_now
+
+logger = get_logger(__name__)
+
+
+class PaperTrader:
+    """Simulate portfolio decisions from the latest asset ranking."""
+
+    def __init__(self, repository: StorageRepository | None = None, initial_cash: float | None = None) -> None:
+        self.repository = repository or StorageRepository()
+        self.portfolio = self._load_portfolio(initial_cash)
+        self.fee_rate = settings.paper_fee_rate
+        self.max_positions = settings.paper_max_positions
+        self.position_size = settings.paper_position_size
+
+    def run_cycle(self, ranking: pd.DataFrame, latest_prices: dict[str, float]) -> dict[str, object]:
+        trades: list[dict[str, object]] = []
+        for row in ranking.itertuples(index=False):
+            price = latest_prices.get(row.symbol)
+            if price is None:
+                continue
+            if row.score >= settings.rank_buy_threshold:
+                trade = self.buy(row.symbol, price)
+                if trade:
+                    trades.append(trade)
+            elif row.score <= settings.rank_sell_threshold:
+                trade = self.sell(row.symbol, price)
+                if trade:
+                    trades.append(trade)
+
+        for symbol, position in self.portfolio.positions.items():
+            if symbol in latest_prices:
+                position.market_price = latest_prices[symbol]
+
+        snapshot = {
+            "timestamp": utc_now(),
+            "cash": self.portfolio.cash,
+            "equity": self.portfolio.equity(),
+            "realized_pnl": self.portfolio.realized_pnl,
+            "unrealized_pnl": self.portfolio.unrealized_pnl(),
+            "positions_json": {
+                symbol: asdict(position)
+                for symbol, position in self.portfolio.positions.items()
+            },
+        }
+        self.repository.save_trades(trades)
+        self.repository.save_snapshot(snapshot)
+        logger.info("Paper trading cycle completed with %s trades", len(trades))
+        return {"trades": trades, "snapshot": snapshot}
+
+    def _load_portfolio(self, initial_cash: float | None) -> Portfolio:
+        snapshot = self.repository.get_latest_snapshot()
+        if snapshot is None:
+            return Portfolio(cash=initial_cash or settings.paper_initial_cash)
+
+        positions = {
+            symbol: Position(**position_data)
+            for symbol, position_data in dict(snapshot["positions_json"]).items()
+        }
+        return Portfolio(
+            cash=float(snapshot["cash"]),
+            realized_pnl=float(snapshot["realized_pnl"]),
+            positions=positions,
+        )
+
+    def buy(self, symbol: str, price: float) -> dict[str, object] | None:
+        if symbol in self.portfolio.positions or len(self.portfolio.positions) >= self.max_positions:
+            return None
+        allocation = self.portfolio.cash * self.position_size
+        if allocation <= 0.0:
+            return None
+        fee = allocation * self.fee_rate
+        quantity = (allocation - fee) / price if price > 0 else 0.0
+        if quantity <= 0.0:
+            return None
+        self.portfolio.cash -= allocation
+        self.portfolio.positions[symbol] = Position(
+            symbol=symbol,
+            quantity=quantity,
+            average_price=price,
+            market_price=price,
+        )
+        return {
+            "timestamp": utc_now(),
+            "symbol": symbol,
+            "side": "BUY",
+            "quantity": quantity,
+            "price": price,
+            "fee": fee,
+            "realized_pnl": 0.0,
+        }
+
+    def sell(self, symbol: str, price: float) -> dict[str, object] | None:
+        position = self.portfolio.positions.get(symbol)
+        if position is None:
+            return None
+        gross_value = position.quantity * price
+        fee = gross_value * self.fee_rate
+        realized_pnl = (price - position.average_price) * position.quantity - fee
+        self.portfolio.cash += gross_value - fee
+        self.portfolio.realized_pnl += realized_pnl
+        del self.portfolio.positions[symbol]
+        return {
+            "timestamp": utc_now(),
+            "symbol": symbol,
+            "side": "SELL",
+            "quantity": position.quantity,
+            "price": price,
+            "fee": fee,
+            "realized_pnl": realized_pnl,
+        }
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/utils/__init__.py
+====================================================================================================
+
+"""Utility package exports."""
+
+from alphascope.utils.io import ensure_directory, parse_csv_argument
+from alphascope.utils.time import ensure_utc_timestamp, from_milliseconds, utc_now
+
+__all__ = ["ensure_directory", "ensure_utc_timestamp", "from_milliseconds", "parse_csv_argument", "utc_now"]
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/utils/time.py
+====================================================================================================
+
+"""Time helpers used across the pipeline."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+import pandas as pd
+
+
+def utc_now() -> datetime:
+    """Return current timezone-aware UTC time."""
+    return datetime.now(UTC)
+
+
+def from_milliseconds(value: int | float) -> pd.Timestamp:
+    """Convert unix milliseconds to UTC pandas timestamp."""
+    return pd.to_datetime(int(value), unit="ms", utc=True)
+
+
+def ensure_utc_timestamp(series: pd.Series) -> pd.Series:
+    """Normalize a pandas Series to UTC timestamps."""
+    return pd.to_datetime(series, utc=True)
+
+
+====================================================================================================
+ARQUIVO: src/alphascope/utils/io.py
+====================================================================================================
+
+"""Simple IO helpers for AlphaScope V1."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+
+def ensure_directory(path: str | Path) -> Path:
+    """Create a directory if missing and return its path."""
+    directory = Path(path)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def parse_csv_argument(value: str) -> list[str]:
+    """Split a comma-separated CLI argument into uppercase tokens."""
+    return [item.strip().upper() for item in value.split(",") if item.strip()]
+
+
+====================================================================================================
+ARQUIVO: tests/conftest.py
+====================================================================================================
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+
+====================================================================================================
+ARQUIVO: tests/test_ingestion.py
+====================================================================================================
+
+from __future__ import annotations
+
+import requests
+
+from alphascope.ingestion.binance_client import BinanceClient
+
+
+class DummyResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self):
+        return self._payload
+
+
+class RetrySession:
+    def __init__(self, payload):
+        self.payload = payload
+        self.calls = 0
+
+    def get(self, *args, **kwargs):
+        self.calls += 1
+        if self.calls == 1:
+            raise requests.Timeout("timeout")
+        return DummyResponse(self.payload)
+
+
+def test_get_klines_normalizes_payload_and_retries():
+    payload = [
+        [1704067200000, "10", "11", "9", "10.5", "150", 1704070799999, "0", "0", "0", "0", "0"],
+        [1704070800000, "10.5", "12", "10", "11.5", "175", 1704074399999, "0", "0", "0", "0", "0"],
+    ]
+    session = RetrySession(payload)
+
+    frame = BinanceClient(session=session, max_retries=2, timeout=1).get_klines("BTCUSDT", "1h", 2)
+
+    assert session.calls == 2
+    assert list(frame.columns) == ["timestamp", "open", "high", "low", "close", "volume", "symbol", "interval"]
+    assert frame["close"].tolist() == [10.5, 11.5]
+    assert frame["symbol"].unique().tolist() == ["BTCUSDT"]
+
+
+====================================================================================================
+ARQUIVO: tests/test_features.py
+====================================================================================================
+
+from __future__ import annotations
+
+import pandas as pd
+
+from alphascope.features.technical import compute_technical_features
+
+
+def test_compute_technical_features_generates_required_columns_without_leakage():
+    rows = 80
+    candles = pd.DataFrame(
+        {
+            "timestamp": pd.date_range("2024-01-01", periods=rows, freq="h", tz="UTC"),
+            "symbol": ["BTCUSDT"] * rows,
+            "interval": ["1h"] * rows,
+            "open": [100 + i for i in range(rows)],
+            "high": [101 + i for i in range(rows)],
+            "low": [99 + i for i in range(rows)],
+            "close": [100 + (i * 0.5) for i in range(rows)],
+            "volume": [1000 + (i * 10) for i in range(rows)],
+        }
+    )
+
+    features = compute_technical_features(
+        candles=candles,
+        short_window=5,
+        long_window=10,
+        rsi_window=14,
+        volatility_window=10,
+        volume_window=10,
+        momentum_window=3,
+    )
+
+    assert not features.empty
+    assert {
+        "return_pct",
+        "ma_short",
+        "ma_long",
+        "rsi",
+        "volatility",
+        "avg_volume",
+        "relative_volume",
+        "momentum",
+        "trend_strength",
+    }.issubset(features.columns)
+    reference_row = features.iloc[0]
+    source_index = candles.index[candles["timestamp"] == reference_row["timestamp"]][0]
+    expected_ma_short = candles.iloc[source_index - 4 : source_index + 1]["close"].mean()
+    assert round(reference_row["ma_short"], 10) == round(expected_ma_short, 10)
+
+
+====================================================================================================
+ARQUIVO: tests/test_ranking.py
+====================================================================================================
+
+from __future__ import annotations
+
+import pandas as pd
+
+from alphascope.ranking.ranker import AssetRanker
+
+
+def test_asset_ranker_orders_highest_score_first():
+    frame = pd.DataFrame(
+        {
+            "symbol": ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
+            "timestamp": pd.to_datetime(["2024-01-01T00:00:00Z"] * 3),
+            "interval": ["1h"] * 3,
+            "close": [100.0, 100.0, 100.0],
+            "momentum": [0.08, 0.02, -0.01],
+            "relative_volume": [1.9, 1.1, 0.8],
+            "trend_strength": [0.05, 0.01, -0.02],
+            "rsi": [58.0, 53.0, 71.0],
+        }
+    )
+
+    ranking = AssetRanker().rank(frame)
+
+    assert ranking["symbol"].tolist() == ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+    assert ranking["score"].iloc[0] > ranking["score"].iloc[-1]
+    assert ranking["rank"].tolist() == [1, 2, 3]
+
+
+====================================================================================================
+ARQUIVO: tests/test_backtest.py
+====================================================================================================
+
+from __future__ import annotations
+
+import pandas as pd
+
+from alphascope.backtest.engine import BacktestEngine
+
+
+def test_backtest_engine_generates_metrics_and_trades():
+    frame = pd.DataFrame(
+        {
+            "timestamp": pd.date_range("2024-01-01", periods=5, freq="h", tz="UTC"),
+            "symbol": ["BTCUSDT"] * 5,
+            "open": [100.0, 101.0, 103.0, 104.0, 106.0],
+            "close": [100.0, 102.0, 104.0, 105.0, 107.0],
+            "score": [0.7, 0.75, 0.55, 0.35, 0.3],
+            "signal": ["BUY", "HOLD", "HOLD", "SELL", "HOLD"],
+        }
+    )
+
+    result = BacktestEngine(initial_cash=1000.0, fee_rate=0.001).run(frame)
+
+    assert "metrics" in result
+    assert result["metrics"]["trade_count"] >= 1
+    assert len(result["trades"]) == 2
+    assert "cumulative_return" in result["metrics"]
+
+
+====================================================================================================
+ARQUIVO: requirements.txt
+====================================================================================================
+
+pandas>=2.0.0
+numpy>=1.24.0
+requests>=2.31.0
+sqlalchemy>=2.0.0
+pydantic>=2.0.0
+pytest>=8.0.0
+
+
+====================================================================================================
+ARQUIVO: .env.example
+====================================================================================================
+
+APP_NAME=AlphaScope
+APP_ENV=development
+LOG_LEVEL=INFO
+DATA_DIR=data
+LOG_DIR=logs
+SQLITE_PATH=data/alphascope.db
+BINANCE_BASE_URL=https://api.binance.com
+REQUEST_TIMEOUT=10
+REQUEST_RETRIES=3
+SYMBOLS=BTCUSDT,ETHUSDT,SOLUSDT
+DEFAULT_INTERVAL=1h
+DEFAULT_CANDLE_LIMIT=500
+SHORT_WINDOW=9
+LONG_WINDOW=21
+RSI_WINDOW=14
+VOLATILITY_WINDOW=20
+VOLUME_WINDOW=20
+MOMENTUM_WINDOW=5
+BACKTEST_INITIAL_CASH=10000
+BACKTEST_FEE_RATE=0.001
+PAPER_INITIAL_CASH=10000
+PAPER_MAX_POSITIONS=5
+PAPER_POSITION_SIZE=0.2
+PAPER_FEE_RATE=0.001
+RANK_BUY_THRESHOLD=0.6
+RANK_SELL_THRESHOLD=0.4
+ECHO_SQL=false
+
+
+====================================================================================================
+ARQUIVO: pyproject.toml
+====================================================================================================
+
+[project]
+name = "alphascope"
+version = "0.1.0"
+description = "AlphaScope V1: plataforma quantitativa modular para cripto"
+authors = [{ name = "AlphaScope Team" }]
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "requests>=2.31.0",
+    "sqlalchemy>=2.0.0",
+    "pydantic>=2.0.0",
+    "pytest>=8.0.0",
+]
+requires-python = ">=3.11"
+readme = "README.md"
+
+[project.scripts]
+alphascope = "alphascope.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["alphascope*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["tests/integration", "tests/unit"]
+python_files = ["test_*.py"]
+addopts = "-ra -q -p no:cacheprovider"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+====================================================================================================
+ARQUIVO: README.md
+====================================================================================================
+
+# AlphaScope V1
+
+AlphaScope e uma plataforma quantitativa modular para analise de mercado cripto. A V1 coleta candles da Binance, persiste dados localmente em SQLite, calcula indicadores tecnicos, gera ranking de ativos, executa backtest simples e roda paper trading por CLI.
+
+## Estrutura
+
+```text
+alphascope/
+  src/alphascope/
+    cli.py
+    config/
+    core/
+    ingestion/
+    storage/
+    features/
+    ranking/
+    backtest/
+    execution/
+    utils/
+  tests/
+  data/
+  requirements.txt
+  .env.example
+  README.md
+```
+
+## Dependencias
+
+- Python 3.11+
+- pandas
+- numpy
+- requests
+- sqlalchemy
+- pydantic
+- pytest
+
+## Instalacao
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+pip install -e .
+```
+
+## Configuracao
+
+1. Copie `.env.example` para `.env`.
+2. Ajuste simbolos, janelas e caminhos se necessario.
+3. O banco SQLite sera criado automaticamente em `data/alphascope.db`.
+
+## Comandos CLI
+
+### Ingestao de mercado
+
+```bash
+python -m alphascope.cli ingest-market --symbols BTCUSDT,ETHUSDT --interval 1h --limit 500
+```
+
+### Geracao de features
+
+```bash
+python -m alphascope.cli build-features --symbols BTCUSDT,ETHUSDT --interval 1h
+```
+
+### Ranking de ativos
+
+```bash
+python -m alphascope.cli rank-assets --symbols BTCUSDT,ETHUSDT,SOLUSDT --interval 1h
+```
+
+### Backtest
+
+```bash
+python -m alphascope.cli backtest --symbol BTCUSDT --interval 1h
+```
+
+### Paper trading
+
+```bash
+python -m alphascope.cli paper-trade --symbols BTCUSDT,ETHUSDT,SOLUSDT --interval 1h
+```
+
+### Pipeline completo
+
+```bash
+python -m alphascope.cli run-pipeline --symbols BTCUSDT,ETHUSDT,SOLUSDT --interval 1h --limit 500
+```
+
+## Fluxo de execucao recomendado
+
+1. `ingest-market`: baixa candles reais da Binance e grava em `market_candles`.
+2. `build-features`: calcula indicadores tecnicos em `technical_features`.
+3. `rank-assets`: gera score cross-sectional e salva em `asset_rankings`.
+4. `backtest`: usa score historico e executa simulacao com dados passados.
+5. `paper-trade`: aplica o ranking mais recente em carteira simulada.
+6. `run-pipeline`: encadeia ingestao, features, ranking e paper trading.
+
+## Tabelas criadas
+
+- `market_candles`
+- `technical_features`
+- `asset_rankings`
+- `paper_trades`
+- `portfolio_snapshots`
+
+## Testes
+
+```bash
+pytest
+```
+
+Os testes cobrem ingestao, features, ranking e backtest com dados mockados.
+
+

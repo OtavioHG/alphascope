@@ -1,0 +1,12 @@
+{
+  "status": "idle",
+  "last_run_at": "2026-04-16T22:48:26.553222+00:00",
+  "last_result": {
+    "dataset_path": "data\\processed\\test_phase4_pipeline\\dataset.csv",
+    "predictions_rows": 2,
+    "ranking_rows": 2,
+    "opened_trades": 1,
+    "closed_trades": 0,
+    "alerts": 2
+  }
+}
