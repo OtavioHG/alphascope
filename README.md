@@ -1,8 +1,7 @@
-# 🚀 AlphaScope: Modular Quantitative Trading Intelligence
+# 🚀 AlphaScope: Inteligência Modular para Trading Quantitativo
 
 <p align="center">
-  <a href="#-sobre-o-projeto">Português 🇧🇷</a> | 
-  <a href="#-about-the-project">English 🇺🇸</a>
+  <b>Português 🇧🇷</b> | <a href="README.en.md">English 🇺🇸</a>
 </p>
 
 ---
@@ -20,46 +19,34 @@
 O objetivo principal do AlphaScope é democratizar o **Trading Quantitativo Profissional**. 
 - **Trading sem Emoção:** Decisões baseadas em dados e scoring híbrido.
 - **Automação 24/7:** Um motor de runtime (Daemon) que mantém o sistema operando ininterruptamente.
-- **Inteligência de Mercado:** Processamento de notícias em tempo real (NLP).
+- **Inteligência de Mercado:** Processamento de notícias em tempo real para capturar o sentimento do mercado antes que ele se reflita nos preços.
 
 ---
 
-## 🇺🇸 About the Project
-
-**AlphaScope** is a modular quantitative platform built for the cryptocurrency market. The system automates the entire trading lifecycle: from massive data ingestion (Binance, GDELT, Fear & Greed) to Paper Trading execution monitored by Machine Learning and NLP models.
-
-### 🎯 The Purpose
-The main goal of AlphaScope is to democratize **Professional Quantitative Trading**.
-- **Emotionless Trading:** Decisions based on data and hybrid scoring.
-- **24/7 Automation:** A runtime engine (Daemon) that keeps the system running uninterrupted.
-- **Market Intelligence:** Real-time news processing using Natural Language Processing.
-
----
-
-## 🏗️ Architecture / Arquitetura
+## 🏗️ Arquitetura do Sistema
 
 ```mermaid
 graph TD
-    subgraph "Data Layer / Camada de Dados"
+    subgraph "Camada de Dados"
         A1[Binance OHLCV] --> B[(SQLite/Postgres)]
         A2[GDELT News] --> B
         A3[Fear & Greed Index] --> B
     end
 
-    subgraph "AI Layer / Cérebro IA"
+    subgraph "Cérebro IA"
         B --> C[Feature Engineering]
         C --> D[NLP Sentiment Analysis]
         C --> E[ML Model Predictors]
         D & E --> F[Hybrid Asset Ranking]
     end
 
-    subgraph "Operation Layer / Execução"
+    subgraph "Execução e Runtime"
         F --> G[Signal Dispatcher]
         G --> H[Paper Trader / Live Simulator]
         H --> I[Risk Manager]
     end
 
-    subgraph "Monitoring / Observabilidade"
+    subgraph "Observabilidade"
         I --> J[Telegram Alerts]
         I --> K[Streamlit Dashboard]
         I --> L[Next.js Frontend]
@@ -68,57 +55,58 @@ graph TD
 
 ---
 
-## 🛠️ Technologies / Tecnologias
-- **Languages:** Python 3.10+ (Core), Go (Services), Rust (Performance).
-- **Data:** SQLite, PostgreSQL, DuckDB.
-- **AI/ML:** Scikit-Learn, NLP Scoring, Optuna (Auto-ML).
-- **Interface:** FastAPI, Next.js, Streamlit.
+## 🛠️ Tecnologias Utilizadas
+- **Linguagem:** Python 3.10+ (Core), Go (Serviços), Rust (Performance).
+- **Dados:** SQLite (Dev), PostgreSQL (Produção), DuckDB (Pesquisa).
+- **IA/ML:** Scikit-Learn, NLP Scoring, Optuna (Auto-ML).
+- **Interface:** FastAPI (API), Next.js (Frontend), Streamlit (Dashboard).
 
 ---
 
-## 🚀 Quick Start / Como Iniciar
+## 🚀 Como Iniciar
 
-### 1. Setup / Instalação
+### 1. Instalação
 ```powershell
-# Clone the repo
+# Clone o repositório
 git clone https://github.com/OtavioHG/alphascope.git
 cd alphascope
 
-# Environment / Ambiente
+# Ambiente Virtual
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-### 2. Validate / Validar
+### 2. Validar Ambiente
 ```powershell
 python -m alphascope.cli doctor
 ```
 
 ---
 
-## 💻 Main Commands / Comandos Principais
+## 💻 Comandos Principais
 
-| Command | English Description | Descrição em Português |
-| :--- | :--- | :--- |
-| `ingest-market` | Collect historical data from Binance. | Coleta dados históricos da Binance. |
-| `build-features` | Process technical indicators. | Processa indicadores técnicos. |
-| `rank-assets` | Generate AI-based asset ranking. | Gera o ranking de ativos via IA. |
-| `paper-trade` | Start real-time simulated trading. | Inicia o trading simulado em tempo real. |
-| `runtime-status` | Check system health and Daemon. | Verifica a saúde do sistema e do Daemon. |
-
----
-
-## 📈 Roadmap & Future
-1. **Live Execution:** Integrate real exchange orders via CCXT.
-2. **Meta-Learning:** Self-evolving AI models based on trade performance.
-3. **Advanced UI:** Complete Next.js dashboard integration.
+| Comando | Descrição |
+| :--- | :--- |
+| `ingest-market` | Coleta dados históricos da Binance. |
+| `build-features` | Processa indicadores técnicos (RSI, Médias, etc). |
+| `rank-assets` | Gera o ranking de ativos baseado no modelo de IA. |
+| `paper-trade` | Inicia o trading simulado em tempo real. |
+| `run-continuous` | Mantém o sistema rodando em ciclos infinitos. |
+| `runtime-status` | Verifica a saúde do sistema e do Daemon. |
 
 ---
 
-## ⚠️ Disclaimer / Aviso Legal
-This software is for educational and research purposes. Crypto trading involves high risk. / Este software é para fins educacionais. O trading de cripto envolve alto risco.
+## 📈 Roadmap & Futuro
+1. **Execução Real:** Integração com exchanges via CCXT.
+2. **Meta-Learning:** IA que aprende com o próprio histórico de trades.
+3. **UI Avançada:** Integração total do painel Next.js.
 
 ---
-⭐ **If you like this project, give it a Star! / Se gostou do projeto, dê uma estrela!**
+
+## ⚠️ Aviso Legal
+Este software é para fins educacionais e de pesquisa. O trading de criptomoedas envolve alto risco. Não nos responsabilizamos por perdas financeiras.
+
+---
+⭐ **Gostou do projeto? Dê um Star no repositório!**
